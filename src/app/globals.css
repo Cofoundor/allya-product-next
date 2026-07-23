@@ -1,0 +1,277 @@
+/* ============================================================
+   Allya — design tokens and the components both routes share.
+   Palette: zeroto10.xyz. Signature: Allya speaks in Fraunces serif —
+   only in her bubbles. Everything else is Inter Tight interface.
+   Motion: springs live in JS; CSS handles one-shot entrances.
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* zeroto10.xyz palette */
+  --bg: #0a0a0a;
+  --surface: #141414;       /* fields, rows */
+  --card: #171717;          /* bubbles, drafts */
+  --raised: #1c1c1c;        /* hover / selected row */
+  --panel: #111111;         /* approval peek panel */
+  --fg: #f3f4f6;
+  --fg-soft: #9ca3af;
+  --fg-faint: #6b7280;
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+
+  /* the one accent */
+  --lime: #91d45f;
+  --lime-glow: #b4e88a;
+  --lime-dim: rgba(145, 212, 95, 0.14);
+  --on-lime: #0a0a0a;
+
+  /* human experts (the 15%) — warm amber in the dark */
+  --human-bg: #2a2113;
+  --human-border: #453619;
+  --human-ink: #e7c98a;
+
+  --danger: #ff4d4d;
+
+  --serif: var(--font-serif), Georgia, serif;              /* Allya's voice */
+  --sans: var(--font-sans), system-ui, sans-serif;         /* the interface */
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 200ms;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;               /* panes scroll, not the page */
+}
+
+::selection { background: var(--lime); color: var(--on-lime); }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+button { font-family: inherit; color: inherit; }
+
+:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; border-radius: 6px; }
+
+/* ============================================================
+   Shared: the live lamp
+   ============================================================ */
+.lamp {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 10px rgba(145, 212, 95, 0.55);
+}
+.brain-live {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--lime);
+  box-shadow: 0 0 8px rgba(145, 212, 95, 0.8);
+  animation: pulse 2.4s var(--ease) infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+
+/* ============================================================
+   Shared: the transcript
+   ============================================================ */
+.msg { display: flex; margin-top: 10px; }
+.msg.change { margin-top: 22px; }
+.msg.from-you { justify-content: flex-end; }
+.msg-block { max-width: 82%; }
+.speaker { font-size: 11.5px; font-weight: 500; color: var(--fg-faint); margin: 0 2px 5px; }
+.speaker .human-tag { color: var(--human-ink); opacity: 0.85; }
+
+.bubble {
+  padding: 11px 15px;
+  border-radius: 14px;
+  line-height: 1.5;
+  animation: bubble-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+/* Allya — the serif voice, card surface */
+.bubble.allya {
+  font-family: var(--serif); font-optical-sizing: auto; font-weight: 420;
+  font-size: 16px;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-bottom-left-radius: 5px;
+  color: var(--fg);
+}
+/* human expert — warm amber, still serif (a person speaking) */
+.bubble.human {
+  font-family: var(--serif); font-weight: 420; font-size: 15.5px;
+  background: var(--human-bg);
+  border: 1px solid var(--human-border);
+  border-bottom-left-radius: 5px;
+  color: var(--human-ink);
+}
+/* you — light fill, sans (you are the interface's operator) */
+.bubble.you {
+  font-family: var(--sans); font-size: 14px; font-weight: 450;
+  background: var(--fg);
+  color: var(--bg);
+  border-bottom-right-radius: 5px;
+  white-space: pre-wrap;
+}
+
+.typing { display: inline-flex; gap: 5px; padding: 14px 16px; }
+.typing i {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--fg-faint);
+  animation: bob 1.2s var(--ease) infinite;
+}
+.typing i:nth-child(2) { animation-delay: 0.15s; }
+.typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bob { 0%,60%,100% { transform: translateY(0); opacity:.5 } 30% { transform: translateY(-4px); opacity:1 } }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 2px 4px; justify-content: flex-end; }
+.chip {
+  appearance: none; cursor: pointer;
+  font-family: var(--sans); font-size: 13px; font-weight: 500;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  padding: 8px 14px;
+  touch-action: manipulation;
+  will-change: transform;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.chip:hover { background: var(--raised); }
+.chip.selected { background: var(--lime-dim); border-color: var(--lime); color: var(--lime-glow); }
+
+/* ============================================================
+   Shared: the composer
+   ============================================================ */
+.composer {
+  flex: none;
+  position: relative;
+  padding: 10px 24px 16px;
+  border-top: 1px solid var(--hairline);
+  background: rgba(12,12,12,0.94);
+}
+.composer .field {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 12px;
+  padding: 5px 5px 5px 14px;
+  transition: border-color var(--dur) var(--ease);
+}
+.composer .field:focus-within { border-color: var(--lime); }
+.composer input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: var(--sans); font-size: 14px; color: var(--fg);
+  padding: 9px 0;
+}
+.composer input::placeholder { color: var(--fg-faint); }
+.send {
+  flex: none; width: 36px; height: 36px; border-radius: 9px;
+  border: none; cursor: pointer; background: var(--lime);
+  display: grid; place-items: center;
+  will-change: transform; touch-action: manipulation;
+}
+.send:hover { background: var(--lime-glow); }
+.send svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   Shared: buttons, labels, pills, avatars
+   ============================================================ */
+.cta {
+  appearance: none; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--sans); font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em;
+  color: var(--on-lime);
+  background: var(--lime);
+  border-radius: 9px;
+  padding: 10px 16px;
+  white-space: nowrap;
+  touch-action: manipulation;
+  will-change: transform;
+}
+.cta:hover { background: var(--lime-glow); }
+.ghost-btn {
+  appearance: none; background: none; cursor: pointer;
+  border: 1px solid var(--hairline-strong); border-radius: 9px;
+  font-size: 13px; font-weight: 500; color: var(--fg-soft);
+  padding: 10px 14px; white-space: nowrap;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.ghost-btn:hover { color: var(--fg); background: var(--raised); }
+
+.group-label {
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--fg-faint);
+  margin: 22px 0 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.group-label .count {
+  font-size: 10.5px; letter-spacing: 0;
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 999px; padding: 1px 7px; color: var(--fg-soft);
+}
+
+.avatar {
+  width: 22px; height: 22px; border-radius: 50%; flex: none;
+  background: var(--fg); color: var(--bg);
+  display: grid; place-items: center;
+  font-family: var(--serif); font-size: 12px; font-weight: 500;
+}
+.avatar.human { background: var(--human-bg); color: var(--human-ink); border: 1px solid var(--human-border); }
+
+/* origin pills — the honest 85/15 seam */
+.pill {
+  flex: none; font-size: 11px; font-weight: 500;
+  border-radius: 999px; padding: 3px 9px;
+  border: 1px solid var(--hairline);
+  color: var(--fg-soft); background: var(--surface);
+}
+.pill.expert { color: var(--human-ink); background: var(--human-bg); border-color: var(--human-border); }
+.pill.review { color: var(--lime-glow); background: var(--lime-dim); border-color: rgba(145,212,95,0.4); }
+.pill.ready { color: var(--lime-glow); background: var(--lime-dim); border-color: rgba(145,212,95,0.4); }
+
+.spinner {
+  flex: none; width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid rgba(145,212,95,0.18); border-top-color: var(--lime);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg) } }
+.tick {
+  flex: none; width: 17px; height: 17px; border-radius: 50%;
+  background: var(--lime-dim);
+  display: grid; place-items: center;
+}
+.tick svg { width: 9px; height: 9px; }
+
+/* a fade+rise used for freshly revealed blocks; delay is set inline */
+.rise-in { animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   Accessibility
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .typing i, .spinner, .status-line .pulse, .brain-live { animation: none !important; }
+  .bubble, .rise-in { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .topbar, .composer, .sheet-foot { background: var(--bg); }
+  .scrim { background: rgba(0,0,0,0.72); }
+}

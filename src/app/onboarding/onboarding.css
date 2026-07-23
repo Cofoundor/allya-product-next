@@ -1,0 +1,380 @@
+/* ============================================================
+   Allya — onboarding
+   Reuses the design tokens and components from globals.css (.cta,
+   .avatar, .chip, .bubble). This file adds the onboarding-specific
+   layout: intro, the ask+brain split, synthesis, and the "what Allya
+   can do" showcase. All prefixed .ob-.
+   ============================================================ */
+
+/* every screen is a fixed, self-scrolling layer so we can move
+   between them without the page ever scrolling */
+.ob-screen {
+  position: fixed; inset: 0;
+  overflow-y: auto;
+  display: flex;
+}
+
+/* corner brand, present on every screen */
+.ob-topbrand {
+  position: fixed; top: 18px; left: 22px; z-index: 50;
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13.5px; font-weight: 500; letter-spacing: -0.01em; color: var(--fg);
+  pointer-events: none;
+}
+.ob-topbrand .ob-by { color: var(--fg-faint); font-weight: 400; }
+
+/* ============================================================
+   1 · Intro
+   ============================================================ */
+.ob-intro { align-items: center; justify-content: center; padding: 40px 24px; }
+.ob-intro::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% 38%, rgba(145, 212, 95, 0.10), transparent 60%),
+    radial-gradient(50% 60% at 82% 90%, rgba(167, 139, 218, 0.06), transparent 60%);
+}
+.ob-intro-inner { position: relative; z-index: 1; max-width: 620px; width: 100%; }
+.ob-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--fg-faint); margin-bottom: 22px;
+}
+.ob-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 8px rgba(145,212,95,0.7); }
+.ob-title {
+  font-family: var(--serif); font-optical-sizing: auto; font-weight: 470;
+  font-size: clamp(34px, 6vw, 56px); line-height: 1.05; letter-spacing: -0.02em;
+  margin: 0 0 22px; color: var(--fg); text-wrap: balance;
+}
+.ob-title-accent { color: var(--lime); font-style: italic; font-weight: 460; }
+.ob-lede {
+  font-size: 16px; line-height: 1.6; color: var(--fg-soft);
+  margin: 0 0 26px; max-width: 540px;
+}
+.ob-assure { list-style: none; margin: 0 0 30px; padding: 0; display: grid; gap: 12px; max-width: 540px; }
+.ob-assure li {
+  position: relative; padding-left: 26px;
+  font-size: 13.5px; line-height: 1.5; color: var(--fg-soft);
+}
+.ob-assure li b { color: var(--fg); font-weight: 500; }
+.ob-assure li::before {
+  content: ""; position: absolute; left: 4px; top: 7px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--lime-dim); border: 1px solid var(--lime);
+}
+.ob-start { font-size: 15px; padding: 13px 22px; }
+.ob-meta { font-size: 12.5px; color: var(--fg-faint); margin: 16px 0 0; }
+
+/* ============================================================
+   2 · Ask — question column + brain column
+   ============================================================ */
+/* 100dvh so a mobile soft keyboard shrinks the layer instead of
+   overlaying the composer (.ob-screen is fixed to the layout viewport) */
+.ob-ask { flex-direction: column; overflow: hidden; height: 100dvh; }
+
+.ob-progress { flex: none; height: 2px; background: rgba(255,255,255,0.06); position: relative; z-index: 5; }
+.ob-progress-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--lime), var(--lime-glow));
+  box-shadow: 0 0 12px rgba(145,212,95,0.6);
+  transition: width 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ob-ask-grid {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 1fr 1.06fr;
+  width: 100%; max-width: 1200px; margin: 0 auto;
+  transition: max-width 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* left — the conversation. A flex column: identity header, scrolling
+   transcript, composer. min-height:0 is load-bearing — without it the
+   transcript's content height wins, the grid row overflows, and that
+   stretches the brain column too (a wrong-sized canvas, not just a
+   broken chat). */
+.ob-q-col {
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0; overflow: hidden;
+  border-right: 1px solid var(--hairline);
+}
+
+.ob-chat-head {
+  flex: none;
+  display: flex; align-items: center; gap: 9px;
+  padding: 15px clamp(20px, 3.4vw, 40px);
+  border-bottom: 1px solid var(--hairline);
+}
+.ob-ask-name { font-size: 12.5px; font-weight: 500; color: var(--fg); }
+.ob-ask-role { color: var(--fg-faint); font-weight: 400; }
+
+.ob-thread {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  padding: 20px clamp(20px, 3.4vw, 40px) 12px;
+}
+/* the step counter, riding in the message's .speaker row */
+.ob-thread .speaker b { color: var(--lime); font-weight: 600; }
+
+/* composer — .composer/.field/.send come from globals.css; these are the
+   deltas for a growing textarea and the two extra controls */
+.ob-composer .field { align-items: flex-end; }
+.ob-composer textarea {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: var(--sans); font-size: 14px; line-height: 1.5; color: var(--fg);
+  padding: 9px 0;
+  resize: none; max-height: 132px; overflow-y: auto;
+}
+.ob-composer textarea::placeholder { color: var(--fg-faint); }
+.ob-composer.is-locked .field { opacity: 0.55; }
+
+.ob-icon {
+  flex: none; width: 34px; height: 34px; border-radius: 8px;
+  appearance: none; border: none; cursor: pointer; background: transparent;
+  color: var(--fg-faint);
+  display: grid; place-items: center;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+  will-change: transform; touch-action: manipulation;
+}
+.ob-icon:hover { color: var(--fg-soft); background: var(--raised); }
+.ob-icon svg { width: 17px; height: 17px; }
+.ob-icon.is-live { color: var(--lime); background: var(--lime-dim); animation: pulse 1.6s var(--ease) infinite; }
+
+.ob-attachments { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 8px; }
+.ob-attach-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--fg-soft);
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  padding: 5px 6px 5px 11px;
+  max-width: 100%;
+}
+.ob-attach-pill .ap-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px; }
+.ob-attach-pill .ap-size { color: var(--fg-faint); flex: none; }
+.ob-attach-pill .ap-x {
+  appearance: none; border: none; background: none; cursor: pointer;
+  color: var(--fg-faint); font-size: 15px; line-height: 1;
+  padding: 0 4px; flex: none;
+}
+.ob-attach-pill .ap-x:hover { color: var(--danger); }
+
+/* the paperclip line inside a sent bubble */
+.bubble .ob-sent-file {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 6px; font-family: var(--sans); font-size: 12px; opacity: 0.72;
+}
+
+.ob-composer-hint { font-size: 12px; color: var(--fg-faint); margin: 8px 2px 0; }
+.ob-composer-hint kbd {
+  font-family: var(--sans); font-size: 11px;
+  border: 1px solid var(--hairline); border-radius: 4px; padding: 1px 5px;
+  background: var(--surface); color: var(--fg-soft);
+}
+
+/* right — the brain */
+.ob-brain-col { display: flex; flex-direction: column; min-width: 0; padding: 20px; }
+.ob-brain-box {
+  position: relative; flex: 1; min-height: 0;
+  border: 1px solid rgba(145, 212, 95, 0.18);
+  border-radius: 18px; overflow: hidden;
+  background:
+    radial-gradient(130% 100% at 50% 42%, rgba(145, 212, 95, 0.07), transparent 58%),
+    radial-gradient(90% 120% at 88% 8%, rgba(167, 139, 218, 0.05), transparent 55%),
+    radial-gradient(90% 120% at 10% 92%, rgba(95, 191, 168, 0.05), transparent 55%),
+    #0d0f0d;
+  box-shadow: inset 0 0 80px -26px rgba(145, 212, 95, 0.20);
+}
+.ob-brain-head {
+  position: absolute; top: 16px; left: 18px; right: 18px; z-index: 2;
+  display: flex; align-items: baseline; justify-content: space-between;
+  pointer-events: none;
+}
+.ob-brain-title { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; color: var(--fg); }
+.ob-brain-sub { font-size: 11.5px; color: var(--lime-glow); font-variant: small-caps; letter-spacing: 0.02em; }
+.ob-brain-box canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.ob-brain-box canvas:active { cursor: grabbing; }
+
+/* the "what I just learned" ledger, bottom-left of the brain */
+.ob-ledger {
+  position: absolute; left: 16px; bottom: 14px; right: 16px; z-index: 2;
+  display: flex; flex-direction: column; gap: 5px; pointer-events: none;
+}
+.ob-ledger-item {
+  display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
+  max-width: 100%;
+  font-size: 11.5px; color: var(--fg-soft);
+  background: rgba(12,12,12,0.9);
+  border: 1px solid var(--hairline); border-radius: 999px;
+  padding: 4px 11px 4px 8px;
+}
+.ob-ledger-item .lg-tick {
+  flex: none; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--lime-dim); display: grid; place-items: center;
+}
+.ob-ledger-item .lg-tick svg { width: 8px; height: 8px; }
+.ob-ledger-item b { color: var(--fg); font-weight: 500; }
+
+/* ============================================================
+   3 · Synthesis
+   The brain is NOT re-mounted for this stage — the same canvas
+   expands to full bleed while the question column falls away, so the
+   graph you built keeps its state, momentum, and pointer bindings.
+   ============================================================ */
+.ob-ask.is-synth .ob-ask-grid { grid-template-columns: 1fr; max-width: none; }
+.ob-ask.is-synth .ob-q-col,
+.ob-ask.is-synth .ob-progress-bar { display: none; }
+.ob-ask.is-synth .ob-brain-col { padding: 0; }
+.ob-ask.is-synth .ob-brain-box { border-radius: 0; border: none; }
+.ob-ask.is-synth .ob-brain-head,
+.ob-ask.is-synth .ob-ledger { opacity: 0; transition: opacity 400ms var(--ease); }
+
+.ob-synth-status {
+  position: fixed; inset: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.ob-synth-status > span {
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--serif); font-weight: 430; font-size: clamp(20px, 3.4vw, 28px);
+  color: var(--fg);
+  background: rgba(12,12,12,0.88);
+  padding: 16px 26px; border-radius: 999px; border: 1px solid var(--hairline);
+}
+.ob-synth-spark { color: var(--lime); animation: sparkspin 3s linear infinite; }
+@keyframes sparkspin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   4 · Showcase — "what Allya can do for you"
+   ============================================================ */
+.ob-show { justify-content: center; padding: 68px 24px 40px; }
+.ob-show-inner { width: 100%; max-width: 900px; }
+
+.ob-show-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--fg-faint); margin-bottom: 16px;
+}
+.ob-show-eyebrow .ob-eyebrow-dot { animation: pulse 2.4s var(--ease) infinite; }
+.ob-show-lead {
+  font-family: var(--serif); font-optical-sizing: auto; font-weight: 450;
+  font-size: clamp(26px, 4.2vw, 40px); line-height: 1.15; letter-spacing: -0.02em;
+  color: var(--fg); margin: 0 0 8px; text-wrap: balance;
+}
+.ob-show-sub { font-size: 15px; color: var(--fg-soft); margin: 0 0 34px; line-height: 1.55; max-width: 620px; }
+
+/* the essence pair: one word + the pitch */
+.ob-essence { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 16px; margin-bottom: 16px; }
+.ob-card {
+  background: var(--card); border: 1px solid var(--hairline);
+  border-radius: 18px; padding: 22px 24px;
+}
+.ob-card .ob-kicker {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--fg-faint); margin-bottom: 12px;
+}
+.ob-oneword-card {
+  grid-row: span 1;
+  display: flex; flex-direction: column; justify-content: center;
+  background:
+    radial-gradient(120% 100% at 20% 0%, rgba(145,212,95,0.10), transparent 60%), var(--card);
+  border-color: rgba(145,212,95,0.28);
+}
+.ob-oneword {
+  font-family: var(--serif); font-optical-sizing: auto; font-weight: 480; font-style: italic;
+  font-size: clamp(34px, 6vw, 52px); line-height: 1; letter-spacing: -0.02em;
+  color: var(--lime); text-wrap: balance;
+}
+.ob-oneword-note { font-size: 12.5px; color: var(--fg-soft); margin-top: 12px; line-height: 1.5; }
+
+.ob-pitch { display: flex; flex-direction: column; justify-content: center; }
+.ob-pitch p {
+  font-family: var(--serif); font-optical-sizing: auto; font-weight: 430;
+  font-size: 19px; line-height: 1.5; color: var(--fg); margin: 0;
+  text-wrap: pretty;
+}
+
+.ob-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+.ob-facts.one-up { grid-template-columns: 1fr; }
+.ob-fact .ob-fact-val { font-size: 16px; font-weight: 500; color: var(--fg); line-height: 1.4; margin-top: 2px; }
+.ob-fact .ob-fact-val .ob-seg {
+  display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+  color: var(--lime-glow); background: var(--lime-dim);
+  border: 1px solid rgba(145,212,95,0.35); border-radius: 999px;
+  padding: 1px 9px; margin-bottom: 6px;
+}
+.ob-goals-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 9px; }
+.ob-goals-list li {
+  position: relative; padding-left: 22px;
+  font-size: 14px; line-height: 1.45; color: var(--fg);
+}
+.ob-goals-list li .gn {
+  position: absolute; left: 0; top: 0;
+  font-size: 11px; font-weight: 600; color: var(--lime); font-variant-numeric: tabular-nums;
+}
+
+/* what Allya can do — capability grid */
+.ob-can {
+  background: var(--card); border: 1px solid var(--hairline);
+  border-radius: 18px; padding: 24px; margin-bottom: 16px;
+}
+.ob-can-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+.ob-can-head h3 { font-family: var(--serif); font-weight: 460; font-size: 20px; margin: 0; color: var(--fg); letter-spacing: -0.01em; }
+.ob-can-head .ob-split { font-size: 11.5px; color: var(--fg-faint); }
+.ob-can-head .ob-split b { color: var(--fg-soft); font-weight: 500; }
+.ob-can-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.ob-cap {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 13px; padding: 14px 15px;
+}
+.ob-cap .ob-cap-ic {
+  flex: none; width: 30px; height: 30px; border-radius: 9px;
+  display: grid; place-items: center; margin-top: 1px;
+  background: var(--lime-dim); border: 1px solid rgba(145,212,95,0.3);
+}
+.ob-cap.exp .ob-cap-ic { background: var(--human-bg); border-color: var(--human-border); }
+.ob-cap .ob-cap-ic svg { width: 15px; height: 15px; }
+.ob-cap .ob-cap-copy { min-width: 0; }
+.ob-cap .ob-cap-title { font-size: 13.5px; font-weight: 500; color: var(--fg); line-height: 1.3; }
+.ob-cap .ob-cap-line { font-size: 12.5px; color: var(--fg-soft); margin-top: 3px; line-height: 1.45; }
+.ob-cap .pill {
+  flex: none; font-size: 10.5px; font-weight: 500; align-self: flex-start;
+  border-radius: 999px; padding: 2px 8px; margin-left: auto;
+}
+
+/* the launch bar */
+.ob-launch {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  background:
+    radial-gradient(120% 200% at 90% 50%, rgba(145,212,95,0.10), transparent 60%), var(--card);
+  border: 1px solid rgba(145,212,95,0.35);
+  border-radius: 18px; padding: 22px 24px;
+  box-shadow: 0 0 40px -18px rgba(145,212,95,0.5);
+  flex-wrap: wrap;
+}
+.ob-launch-copy .t { font-family: var(--serif); font-weight: 450; font-size: 19px; color: var(--fg); }
+.ob-launch-copy .s { font-size: 13px; color: var(--fg-soft); margin-top: 4px; }
+.ob-enter { font-size: 15px; padding: 14px 24px; }
+
+/* ============================================================
+   Mobile
+   ============================================================ */
+@media (max-width: 880px) {
+  /* a scrolling transcript AND a composer now share the bottom row,
+     so the brain gets a smaller (still non-zero) box */
+  .ob-ask-grid { grid-template-columns: 1fr; grid-template-rows: minmax(180px, 34vh) 1fr; }
+  .ob-brain-col { order: -1; padding: 12px 12px 0; }
+  .ob-q-col { border-right: none; border-top: 1px solid var(--hairline); }
+  .ob-chat-head { padding: 12px 16px; }
+  .ob-thread { padding: 16px 16px 8px; }
+  .ob-ask.is-synth .ob-ask-grid { grid-template-rows: 1fr; }
+
+  .ob-essence, .ob-facts, .ob-can-grid { grid-template-columns: 1fr; }
+  .ob-show { padding: 58px 18px 32px; }
+  .ob-launch { flex-direction: column; align-items: flex-start; }
+  .ob-enter { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-progress-bar { transition: none; }
+  .ob-synth-spark, .brain-live, .ob-show-eyebrow .ob-eyebrow-dot { animation: none !important; }
+}
