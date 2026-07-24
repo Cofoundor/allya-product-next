@@ -6,12 +6,14 @@ import { BrainCanvas } from '@/components/BrainCanvas';
 import { Transcript } from '@/components/Transcript';
 import { TickIcon } from '@/components/icons';
 import { useConversation, type Chip } from '@/lib/useConversation';
-import { useTimers } from '@/lib/hooks';
+import { useTimers, prefersReducedMotion } from '@/lib/hooks';
 import { saveHandoff } from '@/lib/handoff';
 import type { BrainHandle } from '@/lib/brain';
 import {
   QUESTIONS,
+  MINI_SYNTH_STEPS,
   SYNTH_STEPS,
+  SYNTH_HOLD,
   derive,
   revenueStage,
   splitGoals,
@@ -19,6 +21,7 @@ import {
   type Question,
 } from '@/lib/onboarding-data';
 import { IntroScreen } from './IntroScreen';
+import { McqScreen } from './McqScreen';
 import { ObComposer, type FileMeta, type ObComposerHandle } from './ObComposer';
 import { Showcase } from './Showcase';
 
@@ -33,7 +36,7 @@ import { Showcase } from './Showcase';
    state, its momentum, and its pointer bindings.
    ============================================================ */
 
-type Phase = 'intro' | 'ask' | 'synth' | 'show';
+type Phase = 'intro' | 'ask' | 'mini-synth' | 'show' | 'mcq' | 'synth';
 
 function ledgerLine(step: Question, answers: Record<string, string>): ReactNode {
   switch (step.key) {
@@ -90,6 +93,8 @@ export default function Onboarding() {
   const [brainSub, setBrainSub] = useState('waiting for a name…');
   const [ledger, setLedger] = useState<{ id: number; node: ReactNode }[]>([]);
   const [synthStep, setSynthStep] = useState(0);
+  const [finale, setFinale] = useState(false);
+  const [marketAnswer, setMarketAnswer] = useState('Both');
   const [derived, setDerived] = useState<Derived | null>(null);
 
   const convo = useConversation();
@@ -152,45 +157,88 @@ export default function Onboarding() {
     [say, showChips],
   );
 
-  /* ---- synthesis → showcase ---- */
+  /* ---- mini-synthesis → showcase ---- */
   const buildShowcase = useCallback(() => {
     const d = derive(answers.current, company.current);
     setDerived(d);
-    saveHandoff({
-      company: d.companyName,
-      base: d.baseSeg,
-      category: d.category,
-      oneWord: d.oneWord,
-      customer: d.customer.text,
-      revenueBadge: d.rev.badge,
-      goals: d.goalList,
-      pitch: d.pitch,
-      edge: d.edge,
-      answers: answers.current,
-      attachments: attachments.current,
-      at: Date.now(),
-    });
+    // snapshot the market answer into state — the MCQ reads it during render,
+    // and refs must not be touched there
+    setMarketAnswer(answers.current.market || 'Both');
     setPhase('show');
   }, []);
 
-  const runSynthesis = useCallback(() => {
-    setPhase('synth');
+  /* The first beat is a SKETCH: a contained card, gentle, ~1.7s. No rAF
+     wrapper — a backgrounded tab throttles it to zero and strands the flow. */
+  const runMiniSynth = useCallback(() => {
+    setPhase('mini-synth');
     brain.current?.setThoughts(true);
-    requestAnimationFrame(() => {
-      brain.current?.start();
-      brain.current?.bloom();
-    });
+    brain.current?.setZoom(1, true);
+    brain.current?.start();
+    brain.current?.bloom();
 
     let i = 0;
     const tick = () => {
       setSynthStep(i);
-      if (i > 0) brain.current?.bloom();
+      if (i > 0) brain.current?.fireThought();
       i += 1;
-      if (i < SYNTH_STEPS.length) after(i === 1 ? 620 : 520, tick);
-      else after(700, buildShowcase);
+      if (i < MINI_SYNTH_STEPS.length) after(400, tick);
+      else after(500, buildShowcase);
     };
     tick();
   }, [after, buildShowcase]);
+
+  /* ---- MCQ → full synthesis → workspace ----
+     The second beat is a CRESCENDO: fullscreen, the graph grows as it wakes,
+     beats lengthen, then a lime wash carries you into the workspace. */
+  const runFullSynth = useCallback(() => {
+    setSynthStep(0);
+    setPhase('synth');
+    setFinale(false);
+    brain.current?.setThoughts(true);
+    brain.current?.setZoom(1, true);
+    brain.current?.start();
+    brain.current?.bloom();
+
+    const last = SYNTH_STEPS.length - 1;
+    let i = 0;
+    const tick = () => {
+      setSynthStep(i);
+      if (i > 0) brain.current?.bloom();
+      brain.current?.setZoom(i === last ? 1.6 : 1 + (i / last) * 0.22);
+      if (i === last) {
+        for (let k = 0; k < 3; k += 1) after(k * 130, () => brain.current?.bloom());
+        setFinale(true);
+      }
+      i += 1;
+      if (i <= last) after(SYNTH_HOLD[i - 1], tick);
+      // hold on the last line while the wash fades up, then land in the workspace
+      else after(prefersReducedMotion() ? 200 : SYNTH_HOLD[last], () => router.push('/'));
+    };
+    tick();
+  }, [after, router]);
+
+  const onMcqConfirm = useCallback(
+    (mcqAnswers: Record<string, string | string[]>) => {
+      const d = derive(answers.current, company.current);
+      saveHandoff({
+        company: d.companyName,
+        base: d.baseSeg,
+        category: d.category,
+        oneWord: d.oneWord,
+        customer: d.customer.text,
+        revenueBadge: d.rev.badge,
+        goals: d.goalList,
+        pitch: d.pitch,
+        edge: d.edge,
+        answers: answers.current,
+        attachments: attachments.current,
+        mcqAnswers,
+        at: Date.now(),
+      });
+      runFullSynth();
+    },
+    [runFullSynth],
+  );
 
   /* ---- answering ---- */
   const afterAnswer = useCallback(
@@ -228,7 +276,7 @@ export default function Onboarding() {
       if (i >= QUESTIONS.length - 1) {
         think(() => {
           say('allya', ack);
-          after(720, runSynthesis);
+          after(720, runMiniSynth);
         }, 800);
         return;
       }
@@ -237,7 +285,7 @@ export default function Onboarding() {
         think(() => askStep(i + 1), 760);
       }, 700);
     },
-    [say, think, after, askStep, runSynthesis],
+    [say, think, after, askStep, runMiniSynth],
   );
 
   const submitAnswer = useCallback(
@@ -267,7 +315,11 @@ export default function Onboarding() {
     [clearChips],
   );
 
-  const asking = phase === 'ask' || phase === 'synth';
+  // the MCQ shares the ask screen's shell so the brain column keeps the graph
+  // the conversation already grew (remounting would start it from scratch)
+  const asking = phase === 'ask' || phase === 'mini-synth' || phase === 'synth' || phase === 'mcq';
+  const isMcq = phase === 'mcq';
+  const brainVisible = phase !== 'intro' && phase !== 'show';
   const progress = ((idx + 1) / (QUESTIONS.length + 1)) * 100;
 
   return (
@@ -280,40 +332,53 @@ export default function Onboarding() {
       {phase === 'intro' ? <IntroScreen onStart={beginAsk} /> : null}
 
       {asking ? (
-        <section className={`ob-screen ob-ask${phase === 'synth' ? ' is-synth' : ''}`}>
+        <section
+          className={`ob-screen ${isMcq ? 'ob-mcq' : 'ob-ask'}${
+            phase === 'mini-synth' || phase === 'synth' ? ' is-synth' : ''
+          }${phase === 'mini-synth' ? ' is-sketch' : ''}${finale ? ' is-finale' : ''}`}
+        >
           <div className="ob-progress">
-            <div className="ob-progress-bar" style={{ width: `${progress}%` }} />
+            <div className="ob-progress-bar" style={{ width: `${isMcq ? 100 : progress}%` }} />
           </div>
 
-          <div className="ob-ask-grid">
-            {/* left — the conversation */}
-            <div className="ob-q-col">
-              <div className="ob-chat-head">
-                <span className="avatar">A</span>
-                <span className="ob-ask-name">
-                  Allya <span className="ob-ask-role">· your cofounder</span>
-                </span>
+          <div className={isMcq ? 'ob-mcq-grid' : 'ob-ask-grid'}>
+            {/* left — the conversation, or the MCQs once the chat is done */}
+            {isMcq && derived ? (
+              <McqScreen
+                marketAnswer={marketAnswer}
+                derived={derived}
+                brainRef={brain}
+                onConfirm={onMcqConfirm}
+              />
+            ) : (
+              <div className="ob-q-col">
+                <div className="ob-chat-head">
+                  <span className="avatar">A</span>
+                  <span className="ob-ask-name">
+                    Allya <span className="ob-ask-role">· your cofounder</span>
+                  </span>
+                </div>
+
+                <Transcript
+                  className="ob-thread"
+                  messages={convo.messages}
+                  typing={convo.typing}
+                  chips={convo.chips}
+                  onChip={onChip}
+                  nearBottomOnly
+                />
+
+                {/* keyed per step: a new question gets a genuinely fresh field */}
+                <ObComposer
+                  key={focusKey}
+                  mode={mode}
+                  placeholder={placeholder}
+                  accepting={accepting}
+                  onSubmit={submitAnswer}
+                  handleRef={composer}
+                />
               </div>
-
-              <Transcript
-                className="ob-thread"
-                messages={convo.messages}
-                typing={convo.typing}
-                chips={convo.chips}
-                onChip={onChip}
-                nearBottomOnly
-              />
-
-              {/* keyed per step: a new question gets a genuinely fresh field */}
-              <ObComposer
-                key={focusKey}
-                mode={mode}
-                placeholder={placeholder}
-                accepting={accepting}
-                onSubmit={submitAnswer}
-                handleRef={composer}
-              />
-            </div>
+            )}
 
             {/* right — the brain, building live */}
             <div className="ob-brain-col">
@@ -329,7 +394,9 @@ export default function Onboarding() {
                   <span className="ob-brain-title">
                     <span className="brain-live" /> The brain
                   </span>
-                  <span className="ob-brain-sub">{brainSub}</span>
+                  <span className="ob-brain-sub">
+                    {isMcq ? 'refining with your answers…' : brainSub}
+                  </span>
                 </div>
                 <div className="ob-ledger">
                   {ledger.map((l) => (
@@ -347,6 +414,15 @@ export default function Onboarding() {
         </section>
       ) : null}
 
+      {phase === 'mini-synth' ? (
+        <div className="ob-synth-status ob-mini-synth">
+          <span>
+            <span className="ob-synth-spark">✦</span>
+            {MINI_SYNTH_STEPS[synthStep]}
+          </span>
+        </div>
+      ) : null}
+
       {phase === 'synth' ? (
         <div className="ob-synth-status">
           <span>
@@ -356,7 +432,7 @@ export default function Onboarding() {
         </div>
       ) : null}
 
-      {phase === 'show' && derived ? <Showcase data={derived} onEnter={() => router.push('/')} /> : null}
+      {phase === 'show' && derived ? <Showcase data={derived} onEnter={() => setPhase('mcq')} /> : null}
     </>
   );
 }

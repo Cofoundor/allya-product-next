@@ -16,6 +16,7 @@ export interface Handoff {
   edge: string;
   answers: Record<string, string>;
   attachments: Record<string, string[]>;
+  mcqAnswers?: Record<string, string | string[]>;
   at: number;
 }
 

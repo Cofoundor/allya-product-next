@@ -95,6 +95,14 @@ export interface BrainHandle {
   bloom(): void;
   setThoughts(on: boolean): void;
   readonly nodeCount: number;
+  /** the finale ramps this so the graph grows as it wakes */
+  setZoom(z: number, snap?: boolean): void;
+  readonly zoom: number;
+  /** send a thought toward a cluster (or anywhere) — used by the MCQs */
+  pulse(id?: string): void;
+  /** add/relabel a single leaf so an MCQ answer shows up in the graph */
+  upsertSatellite(parentId: string, slotKey: string, label: string): void;
+  removeSatellite(slotKey: string): void;
   /** dev: force N settled frames + a draw (preview tabs throttle rAF) */
   tickOnce(frames?: number, dt?: number): void;
 }
@@ -133,6 +141,10 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   const nodes: BrainNode[] = [];
   const nodeById: Record<string, BrainNode> = {};
   const edges: [string, string][] = [];
+
+  // view: the whole graph scales about the centre of the box. The finale
+  // ramps this up so the brain grows as it "wakes"; z eases toward zT.
+  const view = { z: 1, zT: 1 };
   /** id → neighbour ids, so hover doesn't rescan every edge */
   const adj: Record<string, string[]> = {};
 
@@ -479,12 +491,21 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       n.y += n.vy * dt;
     }
     for (const n of nodes) n.ex = Math.max(0, n.ex - dt * 1.1);
+    // ease the view scale (frame-rate independent, same form as the camera)
+    view.z += (view.zT - view.z) * (1 - Math.exp(-6.5 * dt));
   }
 
   /* ---- draw ---- */
   function draw() {
     ctx.clearRect(0, 0, W, H);
     const time = performance.now() / 1000;
+
+    // the graph scales about the centre of the box; hairlines divide by
+    // view.z below so strokes keep their weight as it grows
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(view.z, view.z);
+    ctx.translate(-W / 2, -H / 2);
 
     // edges: gradient strands only while lit — a resting edge sits at ~5%
     // alpha, which a flat stroke renders identically for a fraction of the cost
@@ -501,7 +522,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       } else {
         ctx.strokeStyle = hexA(GROUPS[a.group] || '#91d45f', 0.05 * vis);
       }
-      ctx.lineWidth = (0.8 + lit * 1.2) * S;
+      ctx.lineWidth = ((0.8 + lit * 1.2) * S) / view.z;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
@@ -512,7 +533,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     for (const rp of ripples) {
       const rr = rp.r0 + rp.t * 42 * S;
       ctx.strokeStyle = hexA(rp.col, (1 - rp.t) * 0.4);
-      ctx.lineWidth = 1.4 * S;
+      ctx.lineWidth = (1.4 * S) / view.z;
       ctx.beginPath();
       ctx.arc(rp.x, rp.y, rr, 0, TAU);
       ctx.stroke();
@@ -584,7 +605,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       ctx.arc(n.x, n.y, r, 0, TAU);
       ctx.fill();
       if (hub) {
-        ctx.lineWidth = 1.5 * S;
+        ctx.lineWidth = (1.5 * S) / view.z;
         ctx.strokeStyle = hexA('#eafbdc', 0.6 * n.rev);
         ctx.stroke();
       }
@@ -600,6 +621,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       ctx.fillStyle = hexA(n.tier === 2 ? '#c7ccd4' : '#f3f4f6', lAlpha);
       ctx.fillText(n.label, n.x, n.y + r + 3 * S);
     }
+    ctx.restore();
   }
 
   /* ---- loop ---- */
@@ -713,6 +735,47 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     },
     get nodeCount() {
       return nodes.length;
+    },
+    setZoom(z: number, snap?: boolean) {
+      view.zT = z;
+      if (snap || prefersReducedMotion()) view.z = z;
+    },
+    get zoom() {
+      return view.z;
+    },
+    pulse(id?: string) {
+      fireThought(id ? nodeById[id] : undefined);
+    },
+    // an MCQ answer plants a labelled leaf; changing the answer relabels the
+    // same node, clearing it removes it
+    upsertSatellite(parentId: string, slotKey: string, label: string) {
+      const parent = nodeById[parentId] || nodeById.co;
+      if (!parent) return;
+      const id = `mcq_${slotKey}`;
+      let n = nodeById[id];
+      if (n) {
+        n.label = label;
+      } else {
+        n = addNode({ id, label, tier: 2, group: parent.group, parent: parent.id });
+      }
+      layout();
+      excite(n, 0.9);
+      window.setTimeout(() => {
+        if (nodeById[id]) fireThought(nodeById[id]);
+      }, 60);
+    },
+    removeSatellite(slotKey: string) {
+      const id = `mcq_${slotKey}`;
+      const n = nodeById[id];
+      if (!n) return;
+      const i = nodes.indexOf(n);
+      if (i >= 0) nodes.splice(i, 1);
+      delete nodeById[id];
+      for (let k = edges.length - 1; k >= 0; k--) {
+        if (edges[k][0] === id || edges[k][1] === id) edges.splice(k, 1);
+      }
+      layout();
+      fireThought();
     },
     tickOnce(frames = 1, dt = 1 / 60) {
       if (!resize()) return;

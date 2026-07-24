@@ -114,6 +114,12 @@ export const QUESTIONS: Question[] = [
   },
 ];
 
+export const MINI_SYNTH_STEPS = [
+  'Building your brain…',
+  'Mapping what I know…',
+  'Brain ready ✦',
+];
+
 export const SYNTH_STEPS = [
   'Waking up your cofounder…',
   'Mapping your business',
@@ -121,6 +127,298 @@ export const SYNTH_STEPS = [
   'Analysing your revenue',
   'Locking in your goals',
   'Your AI cofounder is live ✦',
+];
+
+/* beats slow toward the end so the finale builds rather than lists */
+export const SYNTH_HOLD = [620, 700, 780, 860, 940, 1100];
+
+/* ============================================================
+   MCQ Questions (shown after the showcase)
+   ============================================================ */
+
+export interface McqQuestion {
+  id: string;
+  title: string;
+  question: string;
+  answers: string[];
+  multiSelect?: boolean;
+  bifurcation?: {
+    b2cQuestion: string;
+    b2cAnswers: string[];
+    b2bQuestion: string;
+    b2bAnswers: string[];
+  };
+}
+
+export const MCQ_QUESTIONS: McqQuestion[] = [
+  {
+    id: '6',
+    title: 'nature_of_business',
+    question: 'Which of these best describes the nature of your business?',
+    answers: [
+      'B2C (You sell directly to consumers)',
+      'D2C (Digitally native brand that manufactures and sells directly)',
+      'B2B (You sell to other businesses)',
+      'B2G (You sell to government or public institutions)',
+      'Marketplace (You connect buyers and sellers or service providers)',
+      'Content-based business (e.g. blogs, newsletters, video channels, etc.)',
+      'Community-led business (monetizing or supporting a user/member group)',
+      'NGO / Social Impact initiative',
+      'Financial / Insurance / Investment Business (e.g. NBFCs, insurers, funds)',
+      'Franchise / Licensing Business (you license a brand/process to others)',
+      'Affiliate / Referral Monetization (e.g. affiliate networks, coupon sites)',
+      'Open-source or Community-funded Project (with free core offering)',
+      'Events / Venue / Experience-based Business (e.g. concerts, weddings)',
+      'Real Estate / Property Business (e.g. developers, brokers, rental income)',
+      'Supply Chain / Logistics / Transport Services (e.g. freight, warehousing)',
+      'Research, Lab, or Technical Testing Services (e.g. biotech, analytics labs)',
+      'Regulated / Government Contracting (e.g. infra, defense, PPPs)',
+      'Infrastructure / Utilities / Telecom / Cloud Services',
+      'Other / Still Figuring It Out',
+    ],
+    multiSelect: true,
+  },
+  {
+    id: '7',
+    title: 'business_offering',
+    question: 'What do you primarily offer or deliver?',
+    answers: [
+      'Physical products',
+      'Digital products',
+      'Software or SaaS tool',
+      'One-time services',
+      'Ongoing or monthly services',
+      'Platform or marketplace commissions',
+      'Memberships / subscriptions / paid communities',
+      'Ad-supported content',
+      'Freemium model',
+      'Event space or time-based booking',
+      'Licensing, brokerage, or leasing',
+      'Data, research, or testing outcomes',
+      'Infrastructure access or system uptime',
+      'Other',
+    ],
+    multiSelect: true,
+  },
+  {
+    id: '8',
+    title: 'business_stage',
+    question: 'What stage is your business currently at?',
+    answers: [
+      'Just an idea',
+      'Validated idea',
+      'MVP or early version is live',
+      'Fully launched',
+      'Revenue-generating',
+      'Growing steadily and scaling operations',
+    ],
+  },
+  {
+    id: '9',
+    title: 'monetization_status',
+    question: 'Are you monetizing anything right now?',
+    answers: [
+      'No, not yet monetizing',
+      'Testing monetization with a few early users',
+      'Selling or earning actively but still early-stage',
+      'Monetization is stable or growing',
+      'Monetization is not the goal at this stage',
+    ],
+  },
+  {
+    id: '10',
+    title: 'operational_needs',
+    question: 'Are you currently managing any of the following areas?',
+    answers: [
+      'Inventory or product fulfillment',
+      'Recurring billing / subscription payments',
+      'Client onboarding or project servicing',
+      'Product / app / platform development',
+      'Paid promotions / advertising / affiliate campaigns',
+      'Community engagement or moderation',
+      'Hiring or team coordination',
+      'Lead generation or CRM tracking',
+      'Event, space, or calendar bookings',
+      'Regulatory, licensing, or compliance workflows',
+      'Other operational needs',
+    ],
+    multiSelect: true,
+  },
+  {
+    id: '11',
+    title: 'target_audience',
+    question: 'Who is your primary target audience?',
+    answers: [
+      'Consumers',
+      'Businesses',
+      'Institutions',
+      'Professionals',
+      'Communities or groups',
+      'Still figuring it out',
+    ],
+  },
+  {
+    id: '12',
+    title: 'audience_profile_1',
+    question: "What best describes your audience's age group?",
+    answers: ['Teenagers', 'Young Adults', 'Adults', 'Mid-career', 'Seniors'],
+    multiSelect: true,
+  },
+  {
+    id: '13',
+    title: 'audience_profile_2',
+    question: "What best describes your audience's geography?",
+    answers: ['Urban', 'Tier 2/3 towns', 'Rural/Semi-urban', 'International'],
+    multiSelect: true,
+  },
+  {
+    id: '14',
+    title: 'audience_profile_3',
+    question: "What best describes your audience's language preference?",
+    answers: ['English', 'Hindi', 'Hinglish', 'Other'],
+    multiSelect: true,
+  },
+  {
+    id: '15',
+    title: 'audience_profile_4',
+    question: "What best describes your audience's device usage?",
+    answers: ['Mobile', 'Desktop/Laptop', 'Both equally'],
+    multiSelect: true,
+  },
+  {
+    id: '16',
+    title: 'buying_role',
+    question: 'What role does your audience play in the buying decision?',
+    answers: [
+      'They are the user AND the buyer',
+      'They are the buyer but not the user',
+      'They are influencers',
+      'Still unclear',
+    ],
+  },
+  {
+    id: '17',
+    title: 'audience_motivation',
+    question: 'What motivates your audience to buy or engage?',
+    answers: [
+      'Price or affordability',
+      'Aspirational lifestyle / image',
+      'Convenience or time-saving',
+      'FOMO',
+      'Expert credibility or trust',
+      'Community belonging',
+      'Functional outcome / need',
+      'Still figuring this out',
+    ],
+    multiSelect: true,
+  },
+  {
+    id: '18',
+    title: 'purchase_details_or_organizational_size',
+    question: '',
+    answers: [],
+    bifurcation: {
+      b2cQuestion: 'Who is the primary purchaser?',
+      b2cAnswers: ['End-user', 'Parent', 'Household decision-maker', 'Gift-giver', 'Group or shared decision', 'Other'],
+      b2bQuestion: 'What is the Organization Size?',
+      b2bAnswers: ['1-5', '6-20', '21-100', '101-500', '500+'],
+    },
+  },
+  {
+    id: '19',
+    title: 'decision_maker_or_product_users',
+    question: '',
+    answers: [],
+    bifurcation: {
+      b2cQuestion: 'Who ultimately decides to buy?',
+      b2cAnswers: ['Spontaneous decision', 'Family discussion', 'Research-driven', 'Promo-triggered', 'Peer influence'],
+      b2bQuestion: 'Who uses the product/service?',
+      b2bAnswers: ['End-users', 'Admins', 'Managers', 'Mixed teams'],
+    },
+  },
+  {
+    id: '20',
+    title: 'purchase_or_decision_influencers',
+    question: '',
+    answers: [],
+    bifurcation: {
+      b2cQuestion: 'Who influences the purchase?',
+      b2cAnswers: ['Friends', 'Influencers', 'Reviews', 'Brand community', 'In-store staff', 'Other'],
+      b2bQuestion: 'Who influences the decision?',
+      b2bAnswers: ['End-users', 'Technical evaluators', 'Finance team', 'Operations team', 'Sales team', 'External consultants'],
+    },
+  },
+  {
+    id: '21',
+    title: 'decision_cycle_or_process',
+    question: '',
+    answers: [],
+    bifurcation: {
+      b2cQuestion: "What's the typical decision cycle?",
+      b2cAnswers: ['Impulse', 'Quick', 'Considered', 'Major purchase decision'],
+      b2bQuestion: 'How is a decision made?',
+      b2bAnswers: ['Solo', 'Small group', 'Large committee', 'Community vote'],
+    },
+  },
+  {
+    id: '22',
+    title: 'purchase_drivers_or_role_priorities',
+    question: '',
+    answers: [],
+    bifurcation: {
+      b2cQuestion: 'Who are the key purchase drivers by role?',
+      b2cAnswers: ['End-user', 'Household / family', 'Gift-giver', 'Influencer (social or peer)'],
+      b2bQuestion: 'What is the role-specific priority?',
+      b2bAnswers: ['Buyer', 'End-user', 'Technical evaluator', 'Influencer'],
+    },
+  },
+  {
+    id: '23',
+    title: 'price_tier',
+    question: 'Which price/value tier best describes your brand?',
+    answers: ['Mass market / Budget-friendly', 'Mid-market / Affordable quality', 'Premium', 'Luxury', 'Ultra-luxury'],
+  },
+  {
+    id: '24',
+    title: 'brand_personality',
+    question: 'Which three brand personality traits resonate most with you?',
+    answers: [
+      'Friendly & Approachable',
+      'Bold & Disruptive',
+      'Elegant & Sophisticated',
+      'Fun & Playful',
+      'Trustworthy & Reliable',
+      'Minimalist & Clean',
+      'Innovative & Cutting-edge',
+      'Ethical & Sustainable',
+    ],
+    multiSelect: true,
+  },
+  {
+    id: '25',
+    title: 'brand_voice',
+    question: 'What tone & voice should we adopt for your brand?',
+    answers: ['Casual', 'Professional', 'Witty', 'Inspirational', 'Direct', 'Empathetic'],
+  },
+  {
+    id: '26',
+    title: 'key_metrics',
+    question: 'Which of these supporting metrics matter to you?',
+    answers: ['Website traffic', 'Email growth', 'Conversion rate', 'AOV', 'LTV', 'CAC', 'Margin', 'MAU/DAU', 'Churn', 'NPS'],
+    multiSelect: true,
+  },
+  {
+    id: '27',
+    title: 'feedback',
+    question: 'What feedback have you received so far?',
+    answers: ['Testimonials', 'Survey responses', 'Informal feedback', 'No feedback yet'],
+  },
+  {
+    id: '28',
+    title: 'team_size',
+    question: 'How big is your current team?',
+    answers: ['Solo founder', '2-5 people', '6-20', '21-50', '50+'],
+  },
 ];
 
 /* ============================================================
@@ -320,6 +618,143 @@ function firstSentence(s: string) {
 
 function lowerFirst(s: string) {
   return s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+}
+
+function clip(s: string, n = 9) {
+  const w = (s || '').trim().replace(/\.$/, '').split(/\s+/);
+  return w.length > n ? `${w.slice(0, n).join(' ')}…` : w.join(' ');
+}
+
+/* "We're the only X" → "the only X", so it reads inside our own sentence */
+function deSubject(s: string) {
+  return (s || '').trim().replace(/^(we(?:'| a)re|we have|we|our|i(?:'m| am))\s+/i, '');
+}
+
+/* Every capability card names something the founder actually said — the
+   customer, a goal, their edge — so nothing on the showcase reads generic.
+   `seen` counts prior cards in the same department so two Sales cards don't
+   come out word-for-word identical. */
+export function personalise(c: Capability, d: Derived, seen = 0) {
+  const cust = clip(d.customer.lower, 8);
+  const g1 = d.goalList[0] ? lowerFirst(clip(d.goalList[0], 7)) : null;
+  const g2 = d.goalList[1] ? lowerFirst(clip(d.goalList[1], 7)) : null;
+  const edge = d.edge ? lowerFirst(clip(deSubject(d.edge), 9)) : null;
+  switch (c.dept) {
+    case 'Marketing':
+      return seen === 0
+        ? `Written for ${cust}${edge ? `, leading with ${edge}` : ''}.`
+        : `A steady drumbeat aimed at ${cust}.`;
+    case 'Sales':
+      return seen === 0
+        ? `Aimed at ${cust}${g1 ? ` — pointed at ${g1}` : ''}.`
+        : seen === 1
+          ? `Sequences written for ${cust}, in your voice.`
+          : `A real operator pressure-tests the funnel behind ${g1 || 'your growth'}.`;
+    case 'Hiring':
+      return seen === 0
+        ? g2 || g1
+          ? `Scoped against your goal to ${g2 || g1}.`
+          : `Scoped to the team ${d.companyName} needs next.`
+        : `A specialist sits in on the shortlist for ${d.companyName}.`;
+    case 'PR':
+      return seen === 0
+        ? `Journalists who cover the ${d.category} space, pitched on ${edge || 'what makes you different'}.`
+        : 'Your story tightened before it reaches a reporter.';
+    case 'Ops':
+      return seen === 0
+        ? `Built around how ${d.companyName} already works — not a template.`
+        : 'Your way of working, turned into playbooks the next hire can run.';
+    case 'Growth':
+      return `Framed around ${d.rev.badge.toLowerCase()} and where you're taking it.`;
+    default:
+      return c.line;
+  }
+}
+
+/* Which cluster each MCQ speaks to — a pill toggle sends a thought there so
+   the brain visibly reacts even when the answer doesn't spawn a node. */
+export const MCQ_CLUSTER: Record<string, string> = {
+  '6': 'business', '7': 'business', '8': 'revenue', '9': 'revenue', '10': 'business',
+  '11': 'customer', '12': 'customer', '13': 'customer', '14': 'customer', '15': 'customer',
+  '16': 'customer', '17': 'customer', '18': 'customer', '19': 'customer', '20': 'customer',
+  '21': 'customer', '22': 'customer', '23': 'revenue', '24': 'edge', '25': 'edge',
+  '26': 'goals', '27': 'market', '28': 'business',
+};
+
+/* Single-choice questions that plant a labelled leaf in the brain — changing
+   the answer relabels that same leaf, deselecting removes it. */
+export const MCQ_BRAIN: Record<string, { cluster: string; slot: string; short: (a: string) => string }> = {
+  '8': { cluster: 'revenue', slot: 'stage', short: (a) => shortLabel(a, 3) },
+  '11': { cluster: 'customer', slot: 'aud', short: (a) => shortLabel(a, 2) },
+  '16': { cluster: 'customer', slot: 'role', short: (a) => shortLabel(a, 3) },
+  '23': { cluster: 'revenue', slot: 'price', short: (a) => shortLabel(a, 2) },
+  '25': { cluster: 'edge', slot: 'voice', short: (a) => a },
+};
+
+const uniq = (a: string[]) => [...new Set(a)];
+
+/* Prefill the MCQs from what the founder already told us in the chat, so the
+   page opens already answered and they only correct what's wrong. */
+export function computePrefill(d: Derived, market: string): Record<string, string | string[]> {
+  const pf: Record<string, string | string[]> = {};
+  const isB2B = market === 'Businesses';
+  const cat = (d.category || '').toLowerCase();
+  const badge = d.rev.badge;
+
+  const nb: string[] = [];
+  if (market === 'Businesses') nb.push('B2B (You sell to other businesses)');
+  else if (market === 'Consumers') nb.push('B2C (You sell directly to consumers)');
+  else nb.push('B2C (You sell directly to consumers)', 'B2B (You sell to other businesses)');
+  if (/consumer brand|d2c|dtc/.test(cat)) nb.push('D2C (Digitally native brand that manufactures and sells directly)');
+  if (/marketplace/.test(cat)) nb.push('Marketplace (You connect buyers and sellers or service providers)');
+  if (/media|content|story/.test(cat)) nb.push('Content-based business (e.g. blogs, newsletters, video channels, etc.)');
+  if (/community/.test(cat)) nb.push('Community-led business (monetizing or supporting a user/member group)');
+  pf['6'] = uniq(nb);
+
+  const off: string[] = [];
+  if (/saas|software/.test(cat)) off.push('Software or SaaS tool');
+  if (/consumer brand|d2c|retail|brand/.test(cat)) off.push('Physical products');
+  if (/services|agency|consult|craft/.test(cat)) off.push('Ongoing or monthly services');
+  if (/media|content|story/.test(cat)) off.push('Ad-supported content');
+  if (/marketplace/.test(cat)) off.push('Platform or marketplace commissions');
+  if (!off.length) off.push('Digital products');
+  pf['7'] = uniq(off);
+
+  pf['8'] = badge === 'Pre-revenue' ? 'MVP or early version is live'
+    : badge === 'Early revenue' ? 'Revenue-generating'
+      : 'Growing steadily and scaling operations';
+  pf['9'] = badge === 'Pre-revenue' ? 'No, not yet monetizing'
+    : badge === 'Early revenue' ? 'Selling or earning actively but still early-stage'
+      : 'Monetization is stable or growing';
+  pf['10'] = ['Lead generation or CRM tracking', 'Hiring or team coordination', 'Paid promotions / advertising / affiliate campaigns'];
+  pf['11'] = isB2B ? 'Businesses' : 'Consumers';
+  pf['15'] = ['Mobile'];
+  pf['16'] = isB2B ? 'They are the buyer but not the user' : 'They are the user AND the buyer';
+  pf['23'] = 'Mid-market / Affordable quality';
+  pf['25'] = isB2B ? 'Professional' : 'Casual';
+  pf['28'] = 'Solo founder';
+  return pf;
+}
+
+/* Concrete proof that Allya was listening — each row quotes their input. */
+export function knowledgeNotes(d: Derived) {
+  const out: { k: string; v: string }[] = [
+    { k: 'Who you serve', v: d.customer.text },
+    { k: 'Your stage', v: d.rev.badge },
+  ];
+  if (d.edge) out.push({ k: 'Your edge', v: d.edge });
+  out.push({
+    k: 'How you sell',
+    v:
+      d.baseSeg === 'B2B'
+        ? 'To other businesses — longer cycles, fewer, bigger deals'
+        : d.baseSeg === 'B2C'
+          ? 'Direct to consumers — volume and voice matter most'
+          : 'Both business and consumer — I keep two tones ready',
+  });
+  out.push({ k: 'What you call it', v: titleCase(d.category) });
+  d.goalList.forEach((g, i) => out.push({ k: `Goal ${i + 1}`, v: g }));
+  return out;
 }
 
 export interface Derived {
