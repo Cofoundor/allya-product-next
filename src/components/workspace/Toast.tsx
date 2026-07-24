@@ -50,7 +50,7 @@ export function Toast({ message, onDone }: { message: { text: string; id: number
   }, [message]);
 
   return (
-    <div className="shipped" ref={ref}>
+    <div className="ship-toast" ref={ref}>
       <span className="dot" />
       <span className="txt">{message?.text ?? ''}</span>
     </div>
