@@ -81,6 +81,22 @@ export interface BrainOptions {
   isLive?: (node: NodeSpec) => boolean;
   /** bias the ambient thought target */
   pickTarget?: (nodes: NodeSpec[]) => NodeSpec | undefined;
+  /** a tap on a node opens its page — the brain re-centres and fogs the rest */
+  onOpenNode?: (info: OpenNodeInfo) => void;
+}
+
+/** what a tapped node hands to the page that grows out of it */
+export interface OpenNodeInfo {
+  id: string;
+  label: string;
+  tier: number;
+  group: string;
+  color: string;
+  work?: string;
+  parent: string | null;
+  children: { id: string; label: string; work?: string }[];
+  /** where the dot sits on screen, so the page can grow from that point */
+  origin: [number, number];
 }
 
 export interface BrainHandle {
@@ -98,6 +114,10 @@ export interface BrainHandle {
   /** the finale ramps this so the graph grows as it wakes */
   setZoom(z: number, snap?: boolean): void;
   readonly zoom: number;
+  /** open a node's page — re-centres the camera and fogs the rest */
+  openNode(id: string): void;
+  clearFocus(): void;
+  readonly focus: string | null;
   /** send a thought toward a cluster (or anywhere) — used by the MCQs */
   pulse(id?: string): void;
   /** add/relabel a single leaf so an MCQ answer shows up in the graph */
@@ -142,9 +162,30 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   const nodeById: Record<string, BrainNode> = {};
   const edges: [string, string][] = [];
 
-  // view: the whole graph scales about the centre of the box. The finale
-  // ramps this up so the brain grows as it "wakes"; z eases toward zT.
-  const view = { z: 1, zT: 1 };
+  // camera: when a node is opened the graph re-centres on it and everything
+  // that isn't the focus or a neighbour fogs back. All four ease toward *T.
+  const cam = { x: 0, y: 0, z: 1, fog: 0, xT: 0, yT: 0, zT: 1, fogT: 0 };
+  let focusNode: BrainNode | null = null;
+
+  // world ↔ screen (the camera puts cam.x/y at the centre of the box)
+  const toScreen = (x: number, y: number): [number, number] => [
+    (x - cam.x) * cam.z + W / 2,
+    (y - cam.y) * cam.z + H / 2,
+  ];
+  const toWorld = (px: number, py: number): [number, number] => [
+    (px - W / 2) / cam.z + cam.x,
+    (py - H / 2) / cam.z + cam.y,
+  ];
+
+  // how lit a node stays once something is focused: the focus itself, then
+  // its parent/children, then everything else drops back into the fog
+  function fogOf(n: BrainNode) {
+    if (!focusNode) return 1;
+    let rel = 0.12;
+    if (n === focusNode) rel = 1;
+    else if (n.parent === focusNode.id || focusNode.parent === n.id) rel = 0.42;
+    return 1 - cam.fog * (1 - rel);
+  }
   /** id → neighbour ids, so hover doesn't rescan every edge */
   const adj: Record<string, string[]> = {};
 
@@ -276,6 +317,11 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     canvas.style.height = `${H}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     layout();
+    // with nothing focused the camera sits at the centre of the box
+    if (!focusNode) {
+      cam.x = cam.xT = W / 2;
+      cam.y = cam.yT = H / 2;
+    }
     return true;
   }
 
@@ -366,7 +412,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     let bestD = 1e9;
     for (const n of nodes) {
       const d = Math.hypot(px - n.x, py - n.y);
-      const hit = nodeR(n) + 13;
+      const hit = nodeR(n) + 13 / cam.z; // keep the touch target ~constant on screen
       if (d < hit && d < bestD) {
         best = n;
         bestD = d;
@@ -375,10 +421,52 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     return best;
   }
 
+  // pointer → world, so hit-testing keeps working while the camera is moved
   const localPt = (e: PointerEvent): [number, number] => {
     const r = canvas.getBoundingClientRect();
-    return [e.clientX - r.left, e.clientY - r.top];
+    return toWorld(e.clientX - r.left, e.clientY - r.top);
   };
+
+  /* ---- tap a dot: the brain re-centres on it, everything else fogs out,
+     and its page grows out of the node ---- */
+  function openNode(n: BrainNode | null | undefined) {
+    if (!n || !opts.onOpenNode) return;
+    if (n.tier === 0) {
+      // the hub is home — tapping it backs all the way out
+      clearFocus();
+      fireThought(n);
+      return;
+    }
+    focusNode = n;
+    cam.zT = n.tier === 1 ? 1.9 : 2.3;
+    cam.fogT = 1;
+    excite(n, 1.2);
+    fireThought(n);
+    const [sx, sy] = toScreen(n.x, n.y);
+    const r = canvas.getBoundingClientRect();
+    opts.onOpenNode({
+      id: n.id,
+      label: n.label,
+      tier: n.tier,
+      group: n.group,
+      color: GROUPS[n.group] || '#91d45f',
+      work: n.work,
+      parent: n.parent ? (nodeById[n.parent]?.label ?? null) : null,
+      children: nodes
+        .filter((m) => m.parent === n.id)
+        .map((m) => ({ id: m.id, label: m.label, work: m.work })),
+      origin: [r.left + sx, r.top + sy],
+    });
+  }
+
+  function clearFocus() {
+    focusNode = null;
+    cam.xT = W / 2;
+    cam.yT = H / 2;
+    cam.zT = 1;
+    cam.fogT = 0;
+    start(); // the loop may have idled out while the page was up
+  }
 
   const onPointerMove = (e: PointerEvent) => {
     const [px, py] = localPt(e);
@@ -432,7 +520,11 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     const moved =
       pHist.length > 1 &&
       Math.hypot(pHist[pHist.length - 1].x - pHist[0].x, pHist[pHist.length - 1].y - pHist[0].y);
-    if (!moved || moved < 4) fireThought(dragNode); // it was a tap
+    if (!moved || moved * cam.z < 4) {
+      // it was a tap: open its page where that's wired up, else just think
+      if (opts.onOpenNode) openNode(dragNode);
+      else fireThought(dragNode);
+    }
     dragNode = null;
   };
 
@@ -491,8 +583,16 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       n.y += n.vy * dt;
     }
     for (const n of nodes) n.ex = Math.max(0, n.ex - dt * 1.1);
-    // ease the view scale (frame-rate independent, same form as the camera)
-    view.z += (view.zT - view.z) * (1 - Math.exp(-6.5 * dt));
+    // camera + fog follow the focused node
+    if (focusNode) {
+      cam.xT = focusNode.x;
+      cam.yT = focusNode.y;
+    }
+    const k = 1 - Math.exp(-6.5 * dt);
+    cam.x += (cam.xT - cam.x) * k;
+    cam.y += (cam.yT - cam.y) * k;
+    cam.z += (cam.zT - cam.z) * k;
+    cam.fog += (cam.fogT - cam.fog) * k;
   }
 
   /* ---- draw ---- */
@@ -500,12 +600,14 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     ctx.clearRect(0, 0, W, H);
     const time = performance.now() / 1000;
 
-    // the graph scales about the centre of the box; hairlines divide by
-    // view.z below so strokes keep their weight as it grows
+    // one camera for both jobs: with no focus it scales about the centre of
+    // the box (the onboarding finale's growth); with a focus it re-centres on
+    // that node and zooms in. Hairlines divide by cam.z so strokes keep their
+    // weight. Matches toScreen/toWorld exactly.
     ctx.save();
     ctx.translate(W / 2, H / 2);
-    ctx.scale(view.z, view.z);
-    ctx.translate(-W / 2, -H / 2);
+    ctx.scale(cam.z, cam.z);
+    ctx.translate(-cam.x, -cam.y);
 
     // edges: gradient strands only while lit — a resting edge sits at ~5%
     // alpha, which a flat stroke renders identically for a fraction of the cost
@@ -514,6 +616,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       const b = nodeById[bid];
       const vis = Math.min(a.rev, b.rev);
       const lit = Math.max(a.ex, b.ex);
+      ctx.globalAlpha = Math.max(fogOf(a), fogOf(b));
       if (lit > 0.03) {
         const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
         g.addColorStop(0, hexA(GROUPS[a.group] || '#91d45f', (0.05 + a.ex * 0.3 + lit * 0.08) * vis));
@@ -522,18 +625,19 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       } else {
         ctx.strokeStyle = hexA(GROUPS[a.group] || '#91d45f', 0.05 * vis);
       }
-      ctx.lineWidth = ((0.8 + lit * 1.2) * S) / view.z;
+      ctx.lineWidth = ((0.8 + lit * 1.2) * S) / cam.z;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
       ctx.stroke();
     }
+    ctx.globalAlpha = 1;
 
     // ripples: a ring blooms where you touched
     for (const rp of ripples) {
       const rr = rp.r0 + rp.t * 42 * S;
       ctx.strokeStyle = hexA(rp.col, (1 - rp.t) * 0.4);
-      ctx.lineWidth = (1.4 * S) / view.z;
+      ctx.lineWidth = (1.4 * S) / cam.z;
       ctx.beginPath();
       ctx.arc(rp.x, rp.y, rr, 0, TAU);
       ctx.stroke();
@@ -574,6 +678,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       if (n.rev < 0.02) continue;
       const col = GROUPS[n.group] || '#91d45f';
       const hub = n.tier === 0;
+      ctx.globalAlpha = fogOf(n);
       const live = opts.isLive?.(n) ?? false;
       const breath = live ? 0.5 + 0.5 * Math.sin(time * 2.4 + n.phase) : 0;
       const r = nodeR(n) * (hub ? 1 + 0.05 * Math.sin(time * 1.6) : 1);
@@ -605,8 +710,17 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       ctx.arc(n.x, n.y, r, 0, TAU);
       ctx.fill();
       if (hub) {
-        ctx.lineWidth = (1.5 * S) / view.z;
+        ctx.lineWidth = (1.5 * S) / cam.z;
         ctx.strokeStyle = hexA('#eafbdc', 0.6 * n.rev);
+        ctx.stroke();
+      }
+
+      // the focused node keeps a bright ring while its page is up
+      if (n === focusNode && cam.fog > 0.02) {
+        ctx.lineWidth = (1.2 * S) / cam.z;
+        ctx.strokeStyle = hexA(lighten(col), 0.5 * cam.fog);
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r + (7 * S) / cam.z, 0, TAU);
         ctx.stroke();
       }
 
@@ -618,9 +732,10 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       );
       const size = (hub ? 12.7 : n.tier === 1 ? 11.2 : 10) * clamp(S, 0.9, 1.22);
       ctx.font = `${hub ? 600 : 500} ${size}px "Inter Tight", system-ui, sans-serif`;
-      ctx.fillStyle = hexA(n.tier === 2 ? '#c7ccd4' : '#f3f4f6', lAlpha);
+      ctx.fillStyle = hexA(n.tier === 2 ? '#c7ccd4' : '#f3f4f6', lAlpha * fogOf(n));
       ctx.fillText(n.label, n.x, n.y + r + 3 * S);
     }
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 
@@ -678,6 +793,10 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       pulses.length ||
       ripples.length ||
       revealSprings.size ||
+      Math.abs(cam.zT - cam.z) > 0.002 ||
+      Math.abs(cam.fogT - cam.fog) > 0.002 ||
+      Math.abs(cam.xT - cam.x) > 0.4 ||
+      Math.abs(cam.yT - cam.y) > 0.4 ||
       nodes.some((n) => n.ex > 0.02);
     if (now - last < (active ? 33 : 66)) return;
 
@@ -736,12 +855,21 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     get nodeCount() {
       return nodes.length;
     },
+    // with no focused node the camera sits at the box centre, so this just
+    // scales the graph in place — the onboarding finale's growth
     setZoom(z: number, snap?: boolean) {
-      view.zT = z;
-      if (snap || prefersReducedMotion()) view.z = z;
+      cam.zT = z;
+      if (snap || prefersReducedMotion()) cam.z = z;
     },
     get zoom() {
-      return view.z;
+      return cam.z;
+    },
+    openNode(id: string) {
+      openNode(nodeById[id]);
+    },
+    clearFocus,
+    get focus() {
+      return focusNode ? focusNode.id : null;
     },
     pulse(id?: string) {
       fireThought(id ? nodeById[id] : undefined);

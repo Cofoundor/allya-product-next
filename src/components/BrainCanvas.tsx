@@ -40,10 +40,16 @@ export function BrainCanvas({ options, onReady, boxClassName, children }: Props)
       ...initial,
       ...(initial.isLive ? { isLive: (n) => optsRef.current.isLive!(n) } : {}),
       ...(initial.pickTarget ? { pickTarget: (ns) => optsRef.current.pickTarget!(ns) } : {}),
+      ...(initial.onOpenNode ? { onOpenNode: (i) => optsRef.current.onOpenNode!(i) } : {}),
     });
 
     handle.start();
     readyRef.current?.(handle);
+    // dev handle, mirroring the vanilla app's window.__brain — a preview tab
+    // throttles rAF to zero, so timed motion can only be inspected via tickOnce
+    if (process.env.NODE_ENV !== 'production') {
+      (window as unknown as { __brain?: BrainHandle }).__brain = handle;
+    }
     return () => handle.destroy();
   }, []);
 

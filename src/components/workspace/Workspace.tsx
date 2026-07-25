@@ -323,7 +323,14 @@ export default function Workspace() {
           <section className={`pane-chat${engaged ? ' engaged' : ''}`} aria-label="Conversation with Allya">
             <Island work={work} onOpenWork={openSheet} />
 
-            <HomeCanvas work={work} onb={onb} deferred={deferred} onDefer={setDeferred} onOpenSheet={openSheet} />
+            <HomeCanvas
+              work={work}
+              onb={onb}
+              deferred={deferred}
+              onDefer={setDeferred}
+              onOpenSheet={openSheet}
+              onAsk={sendText}
+            />
 
             <Transcript
               className="thread-scroll"

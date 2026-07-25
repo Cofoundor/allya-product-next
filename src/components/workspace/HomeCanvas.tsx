@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { BrainCanvas } from '@/components/BrainCanvas';
 import { ApprovalCard } from './ApprovalCard';
-import type { BrainHandle } from '@/lib/brain';
+import { DotPage } from './DotPage';
+import type { BrainHandle, OpenNodeInfo } from '@/lib/brain';
 import type { Handoff } from '@/lib/handoff';
 import { BRAIN_CROSS, BRAIN_NODES, DAY_PLAN, type WorkItem } from '@/lib/workspace-data';
 
@@ -17,15 +18,23 @@ export function HomeCanvas({
   deferred,
   onDefer,
   onOpenSheet,
+  onAsk,
 }: {
   work: WorkItem[];
   onb: Handoff | null;
   deferred: boolean;
   onDefer: (v: boolean) => void;
   onOpenSheet: (id: string) => void;
+  onAsk?: (text: string) => void;
 }) {
   const needs = work.filter((w) => w.status === 'needs-you');
   const brainRef = useRef<BrainHandle | null>(null);
+  const [dot, setDot] = useState<OpenNodeInfo | null>(null);
+
+  const closeDot = useCallback(() => {
+    setDot(null);
+    brainRef.current?.clearFocus();
+  }, []);
 
   // the handoff arrives after mount — rename the hub when it does
   useEffect(() => {
@@ -60,6 +69,8 @@ export function HomeCanvas({
               const pool = live.length && Math.random() < 0.6 ? live : nodes.filter((n) => n.tier === 2);
               return pool[(Math.random() * pool.length) | 0];
             },
+            // tapping a dot re-centres the brain and opens that node's page
+            onOpenNode: setDot,
           }}
         >
           <div className="brain-head">
@@ -130,6 +141,17 @@ export function HomeCanvas({
 
         <p className="canvas-hint">Click the bar below when you want to talk</p>
       </div>
+
+      <DotPage
+        info={dot}
+        work={work}
+        onClose={closeDot}
+        onGoto={(id) => brainRef.current?.openNode(id)}
+        onAsk={(label) => {
+          closeDot();
+          onAsk?.(`Tell me about ${label.toLowerCase()}`);
+        }}
+      />
     </div>
   );
 }
