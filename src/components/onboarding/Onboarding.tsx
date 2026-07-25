@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BrainCanvas } from '@/components/BrainCanvas';
 import { Transcript } from '@/components/Transcript';
@@ -328,6 +329,7 @@ export default function Onboarding() {
       <div className="ob-topbrand">
         <span className="lamp" /> Allya <span className="ob-by">by Zeroto10</span>
       </div>
+      <Link className="ob-back" href="/">&larr; Workspace</Link>
 
       {phase === 'intro' ? <IntroScreen onStart={beginAsk} /> : null}
 

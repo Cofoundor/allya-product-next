@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { BrainCanvas } from '@/components/BrainCanvas';
 import { ApprovalCard } from './ApprovalCard';
 import { DotPage } from './DotPage';
+import { KnowledgeFeed } from './KnowledgeFeed';
 import type { BrainHandle, OpenNodeInfo } from '@/lib/brain';
 import type { Handoff } from '@/lib/handoff';
 import { BRAIN_CROSS, BRAIN_NODES, DAY_PLAN, type WorkItem } from '@/lib/workspace-data';
@@ -41,9 +42,10 @@ export function HomeCanvas({
     if (onb?.company) brainRef.current?.setHubLabel(onb.company);
   }, [onb]);
 
-  const greet = needs.length
-    ? 'Morning. While you slept, things moved — one is waiting on your eyes.'
-    : 'Morning. Everything that moved overnight is handled.';
+  const coName = onb?.company;
+  const greet = coName
+    ? `Morning. Here’s what I know about ${coName} — flag anything that’s off.`
+    : 'Morning. Here’s what I know — flag anything that’s off.';
 
   return (
     <div className="canvas">
@@ -86,46 +88,48 @@ export function HomeCanvas({
           </div>
         </BrainCanvas>
 
-        <div className="c-row">
-          {needs.length && !deferred ? (
-            <div className="c-sec accent">
-              <div className="group-label">Needs you</div>
-              <ApprovalCard
-                item={needs[0]}
-                ctaLabel="Review now"
-                onOpen={() => onOpenSheet(needs[0].id)}
-                after={
-                  <button
-                    type="button"
-                    className="c-later"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDefer(true);
-                    }}
-                  >
-                    Later today
-                  </button>
-                }
-              />
-            </div>
-          ) : needs.length && deferred ? (
-            <div className="c-sec accent">
-              <div className="group-label">Needs you</div>
-              <p className="c-waiting">
-                1 thing waiting for tonight ·{' '}
-                <button type="button" onClick={() => onDefer(false)}>
-                  actually, show me now
+        {needs.length && !deferred ? (
+          <div className="c-sec accent">
+            <div className="group-label">Needs you</div>
+            <ApprovalCard
+              item={needs[0]}
+              ctaLabel="Review now"
+              onOpen={() => onOpenSheet(needs[0].id)}
+              after={
+                <button
+                  type="button"
+                  className="c-later"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDefer(true);
+                  }}
+                >
+                  Later today
                 </button>
-              </p>
-            </div>
-          ) : (
-            <div className="c-sec">
-              <div className="group-label">Needs you</div>
-              <p className="c-handled">
-                Nothing right now. Agents are working; experts are checking. That&rsquo;s the whole point.
-              </p>
-            </div>
-          )}
+              }
+            />
+          </div>
+        ) : needs.length && deferred ? (
+          <div className="c-sec accent">
+            <div className="group-label">Needs you</div>
+            <p className="c-waiting">
+              1 thing waiting for tonight ·{' '}
+              <button type="button" onClick={() => onDefer(false)}>
+                actually, show me now
+              </button>
+            </p>
+          </div>
+        ) : (
+          <div className="c-sec">
+            <div className="group-label">Needs you</div>
+            <p className="c-handled">
+              Nothing right now. Agents are working; experts are checking. That&rsquo;s the whole point.
+            </p>
+          </div>
+        )}
+
+        <div className="c-row">
+          <KnowledgeFeed company={coName ?? undefined} />
 
           <div className="c-sec">
             <div className="group-label">Today</div>

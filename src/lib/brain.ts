@@ -58,6 +58,10 @@ interface BrainNode extends NodeSpec {
   rev: number;
   phase: number;
   angle?: number;
+  /** label visibility 0..1 — fades toward 0 when occluded by a higher-priority label */
+  lv: number;
+  /** cached label width in CSS px (set at resize) */
+  lw: number;
 }
 
 export interface Cluster {
@@ -166,6 +170,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   // that isn't the focus or a neighbour fogs back. All four ease toward *T.
   const cam = { x: 0, y: 0, z: 1, fog: 0, xT: 0, yT: 0, zT: 1, fogT: 0 };
   let focusNode: BrainNode | null = null;
+  let lastLabelT = 0;
 
   // world ↔ screen (the camera puts cam.x/y at the centre of the box)
   const toScreen = (x: number, y: number): [number, number] => [
@@ -217,6 +222,8 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       ex: 0,
       rev: revealed ? 1 : 0,
       phase: Math.random() * TAU,
+      lv: 1,
+      lw: 0,
     };
     nodes.push(n);
     nodeById[n.id] = n;
@@ -317,6 +324,11 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     canvas.style.height = `${H}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     layout();
+    for (const n of nodes) {
+      const hub = n.tier === 0;
+      ctx.font = `${hub ? 600 : 500} ${(hub ? 12.7 : n.tier === 1 ? 11.2 : 10) * clamp(S, 0.9, 1.22)}px "Inter Tight", system-ui, sans-serif`;
+      n.lw = ctx.measureText(n.label).width;
+    }
     // with nothing focused the camera sits at the centre of the box
     if (!focusNode) {
       cam.x = cam.xT = W / 2;
@@ -724,19 +736,44 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
         ctx.stroke();
       }
 
-      // label
-      const lAlpha = clamp(
-        ((hub ? 0.9 : n.tier === 1 ? 0.58 : 0.34) + n.ex * 0.7 + breath * 0.4) * n.rev,
-        0,
-        1,
-      );
-      const size = (hub ? 12.7 : n.tier === 1 ? 11.2 : 10) * clamp(S, 0.9, 1.22);
-      ctx.font = `${hub ? 600 : 500} ${size}px "Inter Tight", system-ui, sans-serif`;
-      ctx.fillStyle = hexA(n.tier === 2 ? '#c7ccd4' : '#f3f4f6', lAlpha * fogOf(n));
-      ctx.fillText(n.label, n.x, n.y + r + 3 * S);
     }
     ctx.globalAlpha = 1;
     ctx.restore();
+
+    // ---- labels: greedy de-overlap in screen space ----
+    const lnow = performance.now();
+    const ldt = lastLabelT ? Math.min(0.1, (lnow - lastLabelT) / 1000) : 0;
+    lastLabelT = lnow;
+    const order = nodes.slice().sort((a, b) => (a.tier - b.tier) || ((b.ex + (opts.isLive?.(b) ? 0.5 + 0.5 * Math.sin(time * 2.4 + b.phase) : 0)) - (a.ex + (opts.isLive?.(a) ? 0.5 + 0.5 * Math.sin(time * 2.4 + a.phase) : 0))));
+    const placed: { l: number; r: number; t: number; b: number }[] = [];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const n of order) {
+      if (n.rev < 0.02) continue;
+      const hub = n.tier === 0;
+      const live = opts.isLive?.(n) ?? false;
+      const breath = live ? 0.5 + 0.5 * Math.sin(time * 2.4 + n.phase) : 0;
+      const fs = (hub ? 12.7 : n.tier === 1 ? 11.2 : 10) * clamp(S, 0.9, 1.22);
+      const w = n.lw || 0;
+      const r = nodeR(n) * (hub ? 1 + 0.05 * Math.sin(time * 1.6) : 1);
+      const [nsx, nsy] = toScreen(n.x, n.y);
+      const nsr = r * cam.z;
+      const lx = clamp(nsx, w / 2 + 4, W - w / 2 - 4);
+      let ly = nsy + nsr + 3 * S;
+      if (ly + fs > H - 2) ly = nsy - nsr - 3 * S - fs;
+      const box = { l: lx - w / 2 - 2, r: lx + w / 2 + 2, t: ly - 2, b: ly + fs + 2 };
+      const onScreen = box.r > 0 && box.l < W && box.b > 0 && box.t < H;
+      const free = onScreen && (hub || !placed.some(p => box.l < p.r && box.r > p.l && box.t < p.b && box.b > p.t));
+      if (free) placed.push(box);
+      const target = free ? 1 : 0;
+      n.lv = n.lv === undefined ? target : n.lv + (target - n.lv) * Math.min(1, ldt * 8);
+      if (n.lv < 0.02) continue;
+      const rest = hub ? 0.9 : n.tier === 1 ? 0.55 : 0.3;
+      const la = clamp(rest + n.ex * 0.7 + breath * 0.4, 0, 1) * n.lv * fogOf(n);
+      ctx.font = `${hub ? 600 : 500} ${fs}px "Inter Tight", system-ui, sans-serif`;
+      ctx.fillStyle = hexA(n.tier === 2 ? '#c7ccd4' : '#f3f4f6', la);
+      ctx.fillText(n.label, lx, ly);
+    }
   }
 
   /* ---- loop ---- */
