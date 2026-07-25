@@ -10,6 +10,7 @@ import { INITIAL_WORK, type WorkItem } from '@/lib/workspace-data';
 import { Transcript } from '@/components/Transcript';
 import { PressButton } from '@/components/Pressable';
 import { Island } from './Island';
+import { PagePicker } from './PagePicker';
 import { HomeCanvas } from './HomeCanvas';
 import { WorkPane } from './WorkPane';
 import { Composer } from './Composer';
@@ -282,6 +283,7 @@ export default function Workspace() {
         <header className="topbar">
           <div className="brand">
             <span className="lamp" /> Allya <span className="date">· Tuesday</span>
+            <PagePicker />
           </div>
           <nav className="tabs" aria-label="Panes">
             <PressButton
@@ -319,14 +321,7 @@ export default function Workspace() {
 
         <main className={`workspace${tab === 'work' ? ' show-work' : ''}`}>
           <section className={`pane-chat${engaged ? ' engaged' : ''}`} aria-label="Conversation with Allya">
-            <Island
-              work={work}
-              onOpenTodo={() => {
-                const top = work.find((w) => w.status === 'needs-you');
-                if (top) openSheet(top.id);
-                else inputRef.current?.focus();
-              }}
-            />
+            <Island work={work} onOpenWork={openSheet} />
 
             <HomeCanvas work={work} onb={onb} deferred={deferred} onDefer={setDeferred} onOpenSheet={openSheet} />
 

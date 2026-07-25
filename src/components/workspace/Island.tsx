@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Spring } from '@/lib/spring';
 import { useReducedMotion, useTimers } from '@/lib/hooks';
 import type { WorkItem } from '@/lib/workspace-data';
@@ -10,10 +10,14 @@ import type { WorkItem } from '@/lib/workspace-data';
    Left: KPIs, stepping one at a time on a spring. Right: the to-do
    list in continuous motion, driven by a CSS animation so the
    compositor carries it instead of a per-frame rAF.
+
+   Both tickers travel HORIZONTALLY. Tapping either half springs the
+   same element open into a panel — the way iOS's Dynamic Island
+   grows, not a separate popup — and each half of the expanded panel
+   scrolls on its own.
    ============================================================ */
 
-const ROW = 40; // island height / row height
-const SCROLL_PX_PER_SEC = 22;
+const SCROLL_PX_PER_SEC = 34;
 
 function shortTitle(w: WorkItem) {
   if (w.id === 'newsletter') return 'Approve next week’s newsletter';
@@ -24,12 +28,25 @@ function shortTitle(w: WorkItem) {
   );
 }
 
-export function Island({ work, onOpenTodo }: { work: WorkItem[]; onOpenTodo: () => void }) {
+interface IslandProps {
+  work: WorkItem[];
+  /** open an item's approval sheet from the expanded panel */
+  onOpenWork: (id: string) => void;
+}
+
+export function Island({ work, onOpenWork }: IslandProps) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const kpiWinRef = useRef<HTMLDivElement>(null);
+  const todoRef = useRef<HTMLDivElement>(null);
+  const islandRef = useRef<HTMLDivElement>(null);
   const springRef = useRef<Spring | null>(null);
   const idxRef = useRef(0);
+  const cellRef = useRef(0); // step distance = the KPI window's width
   const reduced = useReducedMotion();
   const { after, clearAll } = useTimers();
+
+  const [open, setOpen] = useState(false);
+  const [loopW, setLoopW] = useState(0);
 
   const kpis = useMemo(() => {
     const running = work.filter((w) => w.status === 'running').length;
@@ -50,14 +67,12 @@ export function Island({ work, onOpenTodo }: { work: WorkItem[]; onOpenTodo: () 
     return list.length ? list : [{ needs: false, t: 'All clear — nothing waiting' }];
   }, [work]);
 
-  const loopH = todos.length * ROW;
-
   useEffect(() => {
     const s = new Spring(0, {
       response: 0.5,
       damping: 0.85,
-      onframe: (y) => {
-        if (trackRef.current) trackRef.current.style.transform = `translateY(${-y}px)`;
+      onframe: (x) => {
+        if (trackRef.current) trackRef.current.style.transform = `translateX(${-x}px)`;
       },
     });
     springRef.current = s;
@@ -66,7 +81,7 @@ export function Island({ work, onOpenTodo }: { work: WorkItem[]; onOpenTodo: () 
     };
   }, []);
 
-  const home = () => {
+  const home = useCallback(() => {
     const s = springRef.current;
     idxRef.current = 0;
     if (s) {
@@ -75,19 +90,36 @@ export function Island({ work, onOpenTodo }: { work: WorkItem[]; onOpenTodo: () 
       s.target = 0;
       s.v = 0;
     }
-    if (trackRef.current) trackRef.current.style.transform = 'translateY(0px)';
-  };
+    if (trackRef.current) trackRef.current.style.transform = 'translateX(0px)';
+  }, []);
 
-  // the list changed under us — start again from the top
-  useEffect(home, [kpis]);
+  // the list changed under us — start again from the first cell
+  useEffect(home, [kpis, home]);
+
+  /* Measure the loop distance from real laid-out content, synchronously.
+     A rAF here silently never fires in a backgrounded tab and the ticker
+     would never start. useLayoutEffect runs after DOM mutation, before paint. */
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (kpiWinRef.current) cellRef.current = kpiWinRef.current.clientWidth || 0;
+      if (todoRef.current) {
+        const w = todoRef.current.scrollWidth / 2; // one copy of the duplicated list
+        if (w) setLoopW(w);
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [todos, kpis]);
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || open) return; // paused while the panel is up
     const id = setInterval(() => {
       const s = springRef.current;
       if (!s || document.hidden) return;
+      if (!cellRef.current && kpiWinRef.current) cellRef.current = kpiWinRef.current.clientWidth || 0;
       idxRef.current += 1;
-      s.to(idxRef.current * ROW);
+      s.to(idxRef.current * cellRef.current);
       // landed on the appended clone → snap home once it's out of sight
       if (idxRef.current >= kpis.length) after(520, home);
     }, 3200);
@@ -95,51 +127,164 @@ export function Island({ work, onOpenTodo }: { work: WorkItem[]; onOpenTodo: () 
       clearInterval(id);
       clearAll();
     };
-  }, [kpis.length, reduced, after, clearAll]);
+  }, [kpis.length, reduced, open, after, clearAll, home]);
+
+  // click-outside and Escape collapse the panel
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (islandRef.current && !islandRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
+    document.addEventListener('click', onDoc);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('click', onDoc);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
 
   // the track carries a clone of the first item so the wrap is seamless
   const kpiCells = [...kpis, kpis[0]];
 
+  const needsYou = work.filter((w) => w.status === 'needs-you');
+  const running = work.filter((w) => w.status === 'running');
+  const shipped = work.filter((w) => w.status === 'shipped');
+
+  const row = (w: WorkItem, tag: string) => (
+    <button
+      type="button"
+      className="idet-row"
+      key={w.id}
+      onClick={() => {
+        setOpen(false);
+        onOpenWork(w.id);
+      }}
+    >
+      <span className={`td-dot${w.status === 'needs-you' ? ' needs' : ''}`} />
+      <span className="idet-copy">
+        <span className="idet-t">{w.title || w.say || ''}</span>
+        {w.meta ? <span className="idet-m">{w.meta}</span> : null}
+      </span>
+      <span className={`pill${w.origin === 'expert' ? ' expert' : ''}`}>{tag}</span>
+    </button>
+  );
+
   return (
     <div className="island-wrap">
-      <div className="island" aria-label="Live status">
-        <div className="isl-cell isl-kpi">
-          <span className="isl-dot" />
-          <div className="kpi-track">
-            <div ref={trackRef}>
-              {kpiCells.map((k, i) => (
-                <div key={`${k.l}-${i}`} className="kpi-item" style={{ transform: `translateY(${i * ROW}px)` }}>
-                  <span>
-                    <b>{k.n}</b> {k.l}
-                  </span>
-                </div>
-              ))}
+      <div
+        className={`island${open ? ' is-open' : ''}`}
+        aria-label="Live status"
+        aria-expanded={open}
+        ref={islandRef}
+      >
+        <div className="isl-row">
+          <div
+            className="isl-cell isl-kpi"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen((v) => !v);
+            }}
+          >
+            <span className="isl-dot" />
+            <div className="kpi-track" ref={kpiWinRef}>
+              <div ref={trackRef}>
+                {kpiCells.map((k, i) => (
+                  <div key={`${k.l}-${i}`} className="kpi-item" style={{ transform: `translateX(${i * 100}%)` }}>
+                    <span>
+                      <b>{k.n}</b> {k.l}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            className="isl-cell isl-todo"
+            aria-label="Expand live status"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen((v) => !v);
+            }}
+          >
+            <span className="todo-tag">to-do</span>
+            <div className="todo-track">
+              <div
+                className="todo-list"
+                ref={todoRef}
+                /* longhand only — mixing the `animation` shorthand with
+                   animationPlayState makes React warn about conflicting
+                   properties on re-render */
+                style={
+                  {
+                    '--loop': `-${loopW}px`,
+                    animationName: reduced || !loopW ? 'none' : 'todo-scroll',
+                    animationDuration: `${loopW / SCROLL_PX_PER_SEC}s`,
+                    animationTimingFunction: 'linear',
+                    animationIterationCount: 'infinite',
+                    animationPlayState: open ? 'paused' : 'running',
+                  } as CSSProperties
+                }
+              >
+                {/* the list is duplicated so the sideways scroll is seamless */}
+                {[...todos, ...todos].map((t, i) => (
+                  <div key={`${t.t}-${i}`} className="todo-item">
+                    <span className={`td-dot${t.needs ? ' needs' : ''}`} />
+                    {t.t}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </button>
         </div>
 
-        <button type="button" className="isl-cell isl-todo" aria-label="Open what needs you" onClick={onOpenTodo}>
-          <span className="todo-tag">to-do</span>
-          <div className="todo-track">
-            <div
-              className="todo-list"
-              style={
-                {
-                  '--loop': `-${loopH}px`,
-                  animation: reduced ? 'none' : `todo-scroll ${loopH / SCROLL_PX_PER_SEC}s linear infinite`,
-                } as CSSProperties
-              }
-            >
-              {/* the list is duplicated so the upward scroll is seamless */}
-              {[...todos, ...todos].map((t, i) => (
-                <div key={`${t.t}-${i}`} className="todo-item">
-                  <span className={`td-dot${t.needs ? ' needs' : ''}`} />
-                  {t.t}
-                </div>
-              ))}
+        {/* grows out of the pill when expanded; both panes scroll */}
+        <div className="island-detail">
+          <div className="idet-pane idet-left">
+            {kpis.map((k) => (
+              <div className="idet-kpi" key={k.l}>
+                <b>{k.n}</b>
+                <span>{k.l}</span>
+              </div>
+            ))}
+            <div className="idet-group">This week</div>
+            <div className="idet-note">
+              {shipped.length + 12} shipped · {running.length} in flight · {needsYou.length} waiting on you.
             </div>
+            <div className="idet-note">Nothing leaves the building without your approval.</div>
           </div>
-        </button>
+
+          <div className="idet-pane idet-right">
+            {needsYou.length ? (
+              <>
+                <div className="idet-group">Needs you</div>
+                {needsYou.map((w) => row(w, 'you'))}
+              </>
+            ) : null}
+            {running.length ? (
+              <>
+                <div className="idet-group">Running</div>
+                {running.map((w) => row(w, w.origin || 'agent'))}
+              </>
+            ) : null}
+            {shipped.length ? (
+              <>
+                <div className="idet-group">Shipped today</div>
+                {shipped.map((w) => row(w, w.origin || 'agent'))}
+              </>
+            ) : null}
+            {!needsYou.length && !running.length && !shipped.length ? (
+              <div className="idet-empty">All clear — nothing waiting.</div>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );
