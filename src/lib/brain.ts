@@ -31,6 +31,13 @@ export const GROUPS: Record<string, string> = {
   revenue: '#d9a441',
   goals: '#91d45f',
   edge: '#a78bda',
+
+  /* the sign-in gate’s graph — the company as an outsider meets it
+     (core and market above already carry the right tints) */
+  product: '#91d45f',
+  traction: '#5fbfa8',
+  model: '#d9a441',
+  team: '#a78bda',
 };
 
 const TAU = Math.PI * 2;

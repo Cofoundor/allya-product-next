@@ -1,0 +1,10 @@
+# Netlify picks up the Next.js runtime automatically once it sees Next in
+# package.json — this only pins the build and the Node version (Next 16
+# needs >= 20.9, matching the "engines" field).
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
