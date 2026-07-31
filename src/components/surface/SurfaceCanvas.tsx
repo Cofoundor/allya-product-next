@@ -8,7 +8,7 @@ import { DotPage } from '@/components/workspace/DotPage';
 import { KnowledgeFeed } from '@/components/workspace/KnowledgeFeed';
 import { useTimers } from '@/lib/hooks';
 import { prefersReducedMotion } from '@/lib/spring';
-import { GROUPS, type BrainHandle, type NodeSpec, type OpenNodeInfo } from '@/lib/brain';
+import { GROUPS, branchTints, type BrainHandle, type NodeSpec, type OpenNodeInfo } from '@/lib/brain';
 import { paths } from '@/lib/api/resources';
 import { useResource } from '@/lib/api/useResource';
 import type { BrainGraph, Schedule, Surface, WorkItem } from '@/lib/api/types';
@@ -61,6 +61,11 @@ export function SurfaceCanvas({
 
   const branches = brain ? brain.nodes.filter((n) => n.parent === brain.anchorId && n.tier === 2) : [];
   const spray = brain?.layout === 'spray';
+  // the floor's own eight tints — the rail and the canvas must agree
+  const tints = useMemo(() => {
+    const hue = brain && spray ? GROUPS[brain.anchorId] : null;
+    return hue ? branchTints(hue) : {};
+  }, [brain, spray]);
   // a thought should land on a tip, so it travels the whole path to get there
   const tips = useMemo(() => {
     const parents = new Set((brain?.nodes ?? []).map((n) => n.parent).filter(Boolean));
@@ -160,6 +165,10 @@ export function SurfaceCanvas({
               thoughtEvery: spray ? 3.4 : 5,
               leafSpread: spray ? 0.15 : undefined,
               leafReach: spray ? 0.94 : undefined,
+              // the floor's hue: thoughts along the edges, and eight branch
+              // tints spun out of it rather than the shared rainbow
+              accent: spray ? GROUPS[brain.anchorId] : undefined,
+              groupColors: spray ? tints : undefined,
               radii: spray ? { 0: 5.6, 1: 8.2, 2: 4.6, 3: 2.9 } : undefined,
               isLive: (n) =>
                 work.some(
@@ -200,7 +209,7 @@ export function SurfaceCanvas({
                 className="svc-dir"
                 key={d.id}
                 disabled={!grown}
-                style={{ ['--dir' as string]: GROUPS[d.group] }}
+                style={{ ['--dir' as string]: tints[d.group] ?? GROUPS[d.group] }}
                 onClick={() => brainRef.current?.openNode(d.id)}
               >
                 <span className="svc-dir-dot" />

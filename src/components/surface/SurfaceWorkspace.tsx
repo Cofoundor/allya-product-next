@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { haptic } from '@/lib/spring';
 import { useTimers } from '@/lib/hooks';
 import { useConversation, type Chip } from '@/lib/useConversation';
-import type { BrainHandle } from '@/lib/brain';
+import { GROUPS, type BrainHandle } from '@/lib/brain';
 import {
   paths,
   approveWork,
@@ -67,6 +67,8 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
   const flying = useRef(false);
 
   const surface = surfaceRes.data;
+  // a service floor wears its own colour; the company brain keeps the lime
+  const accent = surfaceId === 'workspace' ? null : (GROUPS[surfaceId] ?? null);
   const work = useMemo(
     () =>
       (workRes.data?.items ?? [])
@@ -286,7 +288,12 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
 
   return (
     <>
-      <div className={`app${launching ? ' is-launching' : ''}`}>
+      {/* the floor wears its own hue: every glow, wash and border on the page
+          reads --accent, and the workspace simply doesn't set it */}
+      <div
+        className={`app${launching ? ' is-launching' : ''}${accent ? ' is-service' : ''}`}
+        style={accent ? ({ ['--accent' as string]: accent } as CSSProperties) : undefined}
+      >
         <header className="topbar">
           <div className="brand">
             <span className="lamp" /> Allya{' '}

@@ -54,13 +54,13 @@
 }
 .pagepick-menu a:hover { background: var(--raised); }
 .pagepick-menu .pp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--fg-faint); }
-.pagepick-menu .is-here .pp-dot { background: var(--lime); box-shadow: 0 0 7px rgba(145,212,95,0.6); }
+.pagepick-menu .is-here .pp-dot { background: var(--accent); box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 60%, transparent); }
 .pagepick-menu .pp-note {
   grid-column: 2; font-size: 11.5px; color: var(--fg-faint); margin-top: -1px;
 }
 .status-line { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--fg-soft); }
 .status-line .pulse {
-  width: 6px; height: 6px; border-radius: 50%; background: var(--lime);
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
   animation: pulse 2.2s var(--ease) infinite;
 }
 .kbd {
@@ -149,7 +149,7 @@
 }
 .idet-pane > .idet-group:first-child, .idet-pane > .idet-kpi:first-child { margin-top: 0; }
 .idet-kpi { display: flex; align-items: baseline; gap: 7px; padding: 5px 0; font-size: 12.5px; color: var(--fg-soft); }
-.idet-kpi b { font-size: 16px; font-weight: 600; color: var(--lime-glow); font-variant-numeric: tabular-nums; }
+.idet-kpi b { font-size: 16px; font-weight: 600; color: var(--accent-glow); font-variant-numeric: tabular-nums; }
 .idet-note { font-size: 11.5px; line-height: 1.5; color: var(--fg-faint); margin-bottom: 7px; }
 
 .idet-row {
@@ -160,7 +160,7 @@
 }
 .idet-row:hover { background: rgba(255,255,255,0.04); }
 .idet-row .td-dot { margin-top: 5px; flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--fg-faint); }
-.idet-row .td-dot.needs { background: var(--lime); box-shadow: 0 0 6px rgba(145,212,95,0.6); }
+.idet-row .td-dot.needs { background: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent); }
 .idet-copy { min-width: 0; display: grid; gap: 2px; }
 .idet-t { font-size: 12.5px; line-height: 1.35; color: var(--fg); }
 .idet-m { font-size: 11px; color: var(--fg-faint); }
@@ -182,7 +182,7 @@
 .isl-kpi { flex: 0 0 43%; gap: 8px; border-right: 1px solid var(--hairline); }
 .isl-kpi .isl-dot {
   flex: none; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--lime); box-shadow: 0 0 7px rgba(145,212,95,0.6);
+  background: var(--accent); box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 .isl-kpi .kpi-track { position: relative; flex: 1; height: 100%; overflow: hidden; }
 /* items sit side by side and the track slides left — the roll runs
@@ -194,7 +194,7 @@
   white-space: nowrap;
   will-change: transform, opacity;
 }
-.isl-kpi .kpi-item b { font-weight: 600; color: var(--lime-glow); margin-right: 4px; font-variant-numeric: tabular-nums; }
+.isl-kpi .kpi-item b { font-weight: 600; color: var(--accent-glow); margin-right: 4px; font-variant-numeric: tabular-nums; }
 
 .isl-todo {
   flex: 1; gap: 9px;
@@ -224,7 +224,7 @@
   font-size: 12px; color: var(--fg-soft); white-space: nowrap;
 }
 .isl-todo .todo-item .td-dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--fg-faint); }
-.isl-todo .todo-item .td-dot.needs { background: var(--lime); box-shadow: 0 0 6px rgba(145,212,95,0.6); }
+.isl-todo .todo-item .td-dot.needs { background: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent); }
 
 /* ---- home canvas layout: side-by-side decision + day, brain hero ---- */
 .c-row { display: flex; gap: 14px; align-items: stretch; }
@@ -237,13 +237,13 @@
   padding: 0; overflow: hidden;
   /* fluid: scales to fit any screen */
   height: clamp(260px, 46vh, 480px);
-  border-color: rgba(145, 212, 95, 0.16);
+  border-color: color-mix(in srgb, var(--accent) 16%, transparent);
   background:
-    radial-gradient(130% 100% at 50% 42%, rgba(145, 212, 95, 0.07), transparent 58%),
+    radial-gradient(130% 100% at 50% 42%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 58%),
     radial-gradient(90% 120% at 88% 8%, rgba(167, 139, 218, 0.05), transparent 55%),
     radial-gradient(90% 120% at 10% 92%, rgba(95, 191, 168, 0.05), transparent 55%),
     #101210;
-  box-shadow: inset 0 0 60px -20px rgba(145, 212, 95, 0.18);
+  box-shadow: inset 0 0 60px -20px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .brain-box .brain-head {
   position: absolute; top: 14px; left: 17px; right: 17px; z-index: 2;
@@ -258,12 +258,12 @@
 .brain-box .brain-sub { font-size: 11px; color: var(--fg-faint); }
 .brain-box .brain-onb {
   pointer-events: auto;
-  font-size: 11px; color: var(--lime); text-decoration: none;
-  border: 1px solid rgba(145, 212, 95, 0.35); border-radius: 999px;
-  padding: 3px 10px; background: rgba(145, 212, 95, 0.08);
+  font-size: 11px; color: var(--accent); text-decoration: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 999px;
+  padding: 3px 10px; background: color-mix(in srgb, var(--accent) 8%, transparent);
   transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
 }
-.brain-box .brain-onb:hover { background: rgba(145, 212, 95, 0.16); border-color: rgba(145, 212, 95, 0.6); }
+.brain-box .brain-onb:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
 .brain-box canvas {
   display: block; width: 100%; height: 100%;
   touch-action: none; cursor: grab;
@@ -307,9 +307,9 @@
 .c-sec .group-label { margin: 0 0 11px; }
 /* the one accented box — the decision */
 .c-sec.accent {
-  background: rgba(145, 212, 95, 0.035);
-  border-color: rgba(145, 212, 95, 0.5);
-  box-shadow: 0 0 32px -14px rgba(145, 212, 95, 0.4);
+  background: color-mix(in srgb, var(--accent) 3.5%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 0 0 32px -14px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 .c-sec.accent .approval-card {
   background: transparent; border: none; border-radius: 0;
@@ -330,7 +330,7 @@
 .c-waiting { font-size: 12.5px; color: var(--fg-faint); margin: 0; }
 .c-waiting button {
   appearance: none; background: none; border: none; cursor: pointer;
-  font-size: 12.5px; font-weight: 500; color: var(--lime-glow); padding: 0;
+  font-size: 12.5px; font-weight: 500; color: var(--accent-glow); padding: 0;
 }
 .c-waiting button:hover { text-decoration: underline; }
 
@@ -348,8 +348,8 @@
 
 /* knowledge feed */
 .c-sec.learnt {
-  background: rgba(145, 212, 95, 0.02);
-  border-color: rgba(145, 212, 95, 0.14);
+  background: color-mix(in srgb, var(--accent) 2%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 14%, transparent);
   display: flex; flex-direction: column;
 }
 .kf-header {
@@ -369,8 +369,8 @@
 }
 .kf-tab:hover { color: var(--fg-soft); border-color: rgba(255,255,255,0.12); }
 .kf-tab.active {
-  color: var(--lime); border-color: rgba(145, 212, 95, 0.4);
-  background: rgba(145, 212, 95, 0.08);
+  color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .kf-tab-cal { padding: 4px 7px; display: flex; align-items: center; }
 .kf-cal-icon { width: 14px; height: 14px; display: block; }
@@ -381,17 +381,17 @@
   padding: 5px 10px; outline: none; width: 100%;
   color-scheme: dark;
 }
-.kf-date-input:focus { border-color: rgba(145, 212, 95, 0.4); }
+.kf-date-input:focus { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .kf-feed {
   display: flex; flex-direction: column; gap: 2px;
   max-height: 164px; overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(145, 212, 95, 0.2) transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent) 20%, transparent) transparent;
 }
 .kf-feed::-webkit-scrollbar { width: 4px; }
 .kf-feed::-webkit-scrollbar-track { background: transparent; }
-.kf-feed::-webkit-scrollbar-thumb { background: rgba(145, 212, 95, 0.2); border-radius: 4px; }
-.kf-feed::-webkit-scrollbar-thumb:hover { background: rgba(145, 212, 95, 0.35); }
+.kf-feed::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--accent) 20%, transparent); border-radius: 4px; }
+.kf-feed::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--accent) 35%, transparent); }
 .kf-empty {
   font-size: 13px; color: var(--fg-faint); margin: 0; padding: 8px 0;
   font-style: italic;
@@ -429,14 +429,14 @@
   background: rgba(255,255,255,0.04); border: 1px solid var(--hairline);
   border-radius: 6px; padding: 5px 10px; outline: none;
 }
-.kf-input:focus { border-color: rgba(145, 212, 95, 0.4); }
+.kf-input:focus { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .kf-save {
   appearance: none; font-size: 11.5px; font-weight: 600;
-  color: var(--lime); background: rgba(145, 212, 95, 0.1);
-  border: 1px solid rgba(145, 212, 95, 0.3); border-radius: 6px;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 6px;
   padding: 4px 10px; cursor: pointer;
 }
-.kf-save:hover { background: rgba(145, 212, 95, 0.18); }
+.kf-save:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 
 .canvas-hint { font-size: 12px; color: var(--fg-faint); margin: 8px 0 0; text-align: center; }
 .day-mark { text-align: center; font-size: 11.5px; color: var(--fg-faint); letter-spacing: 0.05em; margin: 4px 0 16px; }
@@ -470,7 +470,7 @@
   padding: 9px 10px;
   transition: background var(--dur) var(--ease);
 }
-.suggest-item:hover { background: var(--raised); color: var(--lime-glow); }
+.suggest-item:hover { background: var(--raised); color: var(--accent-glow); }
 
 /* ============================================================
    Right: the work panel — the reason this is a tool
@@ -489,16 +489,16 @@
 /* Needs you — the one lime-lit card */
 .approval-card {
   background: var(--surface);
-  border: 1px solid var(--lime);
+  border: 1px solid var(--accent);
   border-radius: 12px;
   padding: 14px 15px;
   cursor: pointer;
   will-change: transform;
   touch-action: manipulation;
-  box-shadow: 0 0 28px -10px rgba(145, 212, 95, 0.35);
+  box-shadow: 0 0 28px -10px color-mix(in srgb, var(--accent) 35%, transparent);
   transition: box-shadow var(--dur) var(--ease);
 }
-.approval-card:hover { box-shadow: 0 0 36px -8px rgba(145, 212, 95, 0.5); }
+.approval-card:hover { box-shadow: 0 0 36px -8px color-mix(in srgb, var(--accent) 50%, transparent); }
 .approval-card .who { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .approval-card .name { font-size: 12px; font-weight: 500; }
 .approval-card .name .role { color: var(--fg-faint); font-weight: 400; }
@@ -523,7 +523,7 @@
 .work-row.shipped .t { color: var(--fg-soft); }
 .row-undo {
   appearance: none; background: none; border: none; cursor: pointer;
-  font-size: 12px; font-weight: 500; color: var(--lime-glow);
+  font-size: 12px; font-weight: 500; color: var(--accent-glow);
   padding: 0;
 }
 .row-undo:hover { text-decoration: underline; }
@@ -575,8 +575,8 @@
 .draft p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--fg-soft); }
 .draft .tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 .draft .tag {
-  font-size: 11px; color: var(--lime-glow);
-  background: var(--lime-dim); border-radius: 999px; padding: 3px 9px;
+  font-size: 11px; color: var(--accent-glow);
+  background: var(--accent-dim); border-radius: 999px; padding: 3px 9px;
 }
 .sheet-note { font-family: var(--serif); font-size: 13.5px; color: var(--fg-soft); margin: 14px 0 0; line-height: 1.55; }
 .undo-note { font-size: 12px; color: var(--fg-faint); margin: 12px 2px 0; line-height: 1.5; }
@@ -604,13 +604,13 @@
 .t-dot.agent { background: var(--raised); border: 1px solid var(--hairline-strong); }
 .t-dot.agent::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--fg-soft); }
 .t-dot.expert { background: var(--human-bg); border: 1px solid var(--human-border); }
-.t-dot.you { background: var(--lime-dim); border: 1px solid var(--lime); }
-.t-dot.you::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--lime); }
+.t-dot.you { background: var(--accent-dim); border: 1px solid var(--accent); }
+.t-dot.you::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .t-txt { flex: 1; min-width: 0; }
 .t-time { flex: none; font-size: 11px; color: var(--fg-faint); font-variant-numeric: tabular-nums; }
 .trail-toggle {
   appearance: none; background: none; border: none; cursor: pointer;
-  font-size: 11.5px; font-weight: 500; color: var(--lime-glow);
+  font-size: 11.5px; font-weight: 500; color: var(--accent-glow);
   padding: 2px 4px; white-space: nowrap;
 }
 .trail-toggle:hover { text-decoration: underline; }
@@ -623,8 +623,8 @@
   padding: 3px 8px; border-left: 2px solid rgba(255,77,77,0.35);
 }
 .d-new {
-  font-size: 12px; color: var(--lime-glow);
-  padding: 3px 8px; border-left: 2px solid var(--lime);
+  font-size: 12px; color: var(--accent-glow);
+  padding: 3px 8px; border-left: 2px solid var(--accent);
   margin-top: 2px;
 }
 
@@ -650,7 +650,7 @@
   display: flex; align-items: center; gap: 9px;
   pointer-events: none; will-change: transform, opacity;
 }
-.ship-toast .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 8px rgba(145,212,95,0.6); }
+.ship-toast .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent); }
 
 /* ============================================================
    Mobile: tabs + bottom sheet
@@ -669,7 +669,7 @@
     touch-action: manipulation;
   }
   .tab.active { background: var(--raised); color: var(--fg); }
-  .tab .badge { color: var(--lime); }
+  .tab .badge { color: var(--accent); }
 
   .status-line, .kbd { display: none; }
   .brain-box .brain-sub { display: none; }   /* the Onboarding pill keeps the row */
@@ -709,7 +709,7 @@
    node's page grows out of the node itself. --dot is set per node.
    ============================================================ */
 .dot-layer {
-  --dot: var(--lime);
+  --dot: var(--accent);
   /* above the approval sheet (41), below the "Shipped." toast (60) */
   position: fixed; inset: 0; z-index: 50;
   display: flex; align-items: flex-end; justify-content: center;
@@ -836,7 +836,7 @@
   appearance: none; cursor: pointer; width: 100%;
   margin-top: 22px; padding: 12px 16px;
   border-radius: 12px; border: none;
-  background: var(--dot); color: var(--on-lime);
+  background: var(--dot); color: var(--on-accent);
   font-size: 13.5px; font-weight: 500;
 }
 

@@ -21,7 +21,10 @@ import { Spring, clamp, prefersReducedMotion } from './spring';
 
 export const GROUPS: Record<string, string> = {
   core: '#91d45f',
-  marketing: '#91d45f',
+  // marketing used to share the hub's lime, which made the company brain and
+  // the marketing floor indistinguishable. It takes the one hue the rest of
+  // the family leaves open — nothing else sits near magenta.
+  marketing: '#d97ab0',
   hiring: '#d9a441',
   pr: '#a78bda',
   sales: '#5fbfa8',
@@ -120,6 +123,12 @@ export interface BrainOptions {
       labels are long enough to run off the edge */
   leafReach?: number;
   thoughtEvery?: number;
+  /** the hue this surface is wearing — thoughts travelling the edges, the
+      breathing of live nodes. Defaults to the company's lime. */
+  accent?: string;
+  /** group → colour, layered over GROUPS: a floor spins its branch tints out
+      of its own accent rather than taking the shared rainbow */
+  groupColors?: Record<string, string>;
   /** nodes that need the founder's eyes breathe */
   isLive?: (node: NodeSpec) => boolean;
   /** bias the ambient thought target */
@@ -191,6 +200,49 @@ function hexA(hex: string, a: number) {
   return `rgba(${r},${g},${b},${clamp(a, 0, 1)})`;
 }
 
+/* ---- the branch family ----
+   A service floor's directions used to take a fixed eight-colour rainbow,
+   which read as "some graph" rather than "the PR floor". These are spun out
+   of the floor's own hue instead: eight members close enough to belong to one
+   colour, far enough apart to stay eight distinct places. */
+function toHsl(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (!d) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const hue =
+    max === r ? ((g - b) / d + (g < b ? 6 : 0)) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [hue * 60, s, l];
+}
+
+function hsl(h: number, s: number, l: number) {
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + ((h % 360) + 360) / 30) % 12;
+    const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(c * 255)
+      .toString(16)
+      .padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+/** b1…b8 spun out of one accent — the palette a service floor wears */
+export function branchTints(accent: string): Record<string, string> {
+  const [h, s, l] = toHsl(accent);
+  const spin = [-34, 20, -16, 36, 0, -50, 52, 10];
+  const lift = [0.06, -0.05, -0.1, 0.02, 0.1, -0.02, -0.07, 0.14];
+  const out: Record<string, string> = {};
+  spin.forEach((dh, i) => {
+    out[`b${i + 1}`] = hsl(h + dh, clamp(s * 0.92, 0.28, 0.62), clamp(l + lift[i], 0.42, 0.78));
+  });
+  return out;
+}
+
 function lighten(hex: string) {
   const h = hex.replace('#', '');
   const mix = (c: number) => Math.round(c + (255 - c) * 0.4);
@@ -216,6 +268,12 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   const labelSize = (n: BrainNode) =>
     n.tier === 0 ? 12.7 : n.tier === 1 ? 11.2 : n.kids ? 10.8 : n.tier === 3 ? 9.4 : 10;
   const thoughtEvery = opts.thoughtEvery ?? 5;
+  // a thought travelling the edges is the surface's colour, not always lime
+  const ACCENT = opts.accent ?? '#91d45f';
+  const PALETTE: Record<string, string> = { ...GROUPS, ...(opts.groupColors ?? {}) };
+  const colorOf = (group: string) => PALETTE[group] || ACCENT;
+  const ACCENT_LIT = lighten(ACCENT);
+  const ACCENT_PALE = lighten(ACCENT_LIT);
 
   let W = 0;
   let H = 0;
@@ -480,7 +538,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   /* ---- thoughts ---- */
   function excite(n: BrainNode, amt: number) {
     n.ex = clamp(n.ex + amt, 0, 1.4);
-    if (amt >= 0.5) ripples.push({ x: n.x, y: n.y, col: GROUPS[n.group] || '#91d45f', t: 0, r0: nodeR(n) });
+    if (amt >= 0.5) ripples.push({ x: n.x, y: n.y, col: colorOf(n.group), t: 0, r0: nodeR(n) });
   }
 
   function fireEdge(a: BrainNode, b: BrainNode, delay = 0) {
@@ -608,7 +666,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       label: n.label,
       tier: n.tier,
       group: n.group,
-      color: GROUPS[n.group] || '#91d45f',
+      color: colorOf(n.group),
       work: n.work,
       parent: n.parent ? (nodeById[n.parent]?.label ?? null) : null,
       children: nodes
@@ -870,11 +928,11 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       ctx.globalAlpha = Math.max(fogOf(a), fogOf(b));
       if (lit > 0.03) {
         const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-        g.addColorStop(0, hexA(GROUPS[a.group] || '#91d45f', (0.05 + a.ex * 0.3 + lit * 0.08) * vis));
-        g.addColorStop(1, hexA(GROUPS[b.group] || '#91d45f', (0.05 + b.ex * 0.3 + lit * 0.08) * vis));
+        g.addColorStop(0, hexA(colorOf(a.group), (0.05 + a.ex * 0.3 + lit * 0.08) * vis));
+        g.addColorStop(1, hexA(colorOf(b.group), (0.05 + b.ex * 0.3 + lit * 0.08) * vis));
         ctx.strokeStyle = g;
       } else {
-        ctx.strokeStyle = hexA(GROUPS[a.group] || '#91d45f', 0.05 * vis);
+        ctx.strokeStyle = hexA(colorOf(a.group), 0.05 * vis);
       }
       ctx.lineWidth = ((0.8 + lit * 1.2) * S) / cam.z;
       ctx.beginPath();
@@ -905,8 +963,8 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       const py = s.a.y + (s.b.y - s.a.y) * tt;
       const fade = Math.sin(t * Math.PI);
       const tg = ctx.createLinearGradient(px, py, x, y);
-      tg.addColorStop(0, hexA('#b4e88a', 0));
-      tg.addColorStop(1, hexA('#b4e88a', 0.6 * fade));
+      tg.addColorStop(0, hexA(ACCENT_LIT, 0));
+      tg.addColorStop(1, hexA(ACCENT_LIT, 0.6 * fade));
       ctx.strokeStyle = tg;
       ctx.lineWidth = 2 * S;
       ctx.beginPath();
@@ -914,8 +972,8 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       ctx.lineTo(x, y);
       ctx.stroke();
       const hg = ctx.createRadialGradient(x, y, 0, x, y, 7 * S);
-      hg.addColorStop(0, hexA('#eafbdc', 0.95 * fade));
-      hg.addColorStop(1, hexA('#91d45f', 0));
+      hg.addColorStop(0, hexA(ACCENT_PALE, 0.95 * fade));
+      hg.addColorStop(1, hexA(ACCENT, 0));
       ctx.fillStyle = hg;
       ctx.beginPath();
       ctx.arc(x, y, 7 * S, 0, TAU);
@@ -927,7 +985,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     ctx.textBaseline = 'top';
     for (const n of nodes) {
       if (n.rev < 0.02) continue;
-      const col = GROUPS[n.group] || '#91d45f';
+      const col = colorOf(n.group);
       const hub = n.tier === 0;
       ctx.globalAlpha = fogOf(n);
       const live = opts.isLive?.(n) ?? false;
@@ -939,7 +997,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       if (hub || glow > 0.03) {
         const haloR = r + (hub ? 26 : 11) * S + n.ex * 12 * S + breath * 8 * S;
         const hg = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, haloR);
-        hg.addColorStop(0, hexA(live ? '#91d45f' : col, (0.05 + glow * 0.16) * n.rev));
+        hg.addColorStop(0, hexA(live ? ACCENT : col, (0.05 + glow * 0.16) * n.rev));
         hg.addColorStop(1, hexA(col, 0));
         ctx.fillStyle = hg;
         ctx.beginPath();
@@ -962,7 +1020,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       ctx.fill();
       if (hub) {
         ctx.lineWidth = (1.5 * S) / cam.z;
-        ctx.strokeStyle = hexA('#eafbdc', 0.6 * n.rev);
+        ctx.strokeStyle = hexA(ACCENT_PALE, 0.6 * n.rev);
         ctx.stroke();
       }
 
@@ -996,7 +1054,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
         dx /= d;
         dy /= d;
         const len = Math.min(190, 26 + d * 0.7) * warp;
-        const col = GROUPS[n.group] || '#91d45f';
+        const col = colorOf(n.group);
         const g = ctx.createLinearGradient(sx, sy, sx + dx * len, sy + dy * len);
         g.addColorStop(0, hexA(col, 0.6 * warp));
         g.addColorStop(1, hexA(col, 0));

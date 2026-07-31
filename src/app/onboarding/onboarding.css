@@ -43,7 +43,7 @@
 .ob-intro::before {
   content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(60% 50% at 50% 38%, rgba(145, 212, 95, 0.10), transparent 60%),
+    radial-gradient(60% 50% at 50% 38%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
     radial-gradient(50% 60% at 82% 90%, rgba(167, 139, 218, 0.06), transparent 60%);
 }
 .ob-intro-inner { position: relative; z-index: 1; max-width: 620px; width: 100%; }
@@ -52,13 +52,13 @@
   font-size: 11.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--fg-faint); margin-bottom: 22px;
 }
-.ob-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 8px rgba(145,212,95,0.7); }
+.ob-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent); }
 .ob-title {
   font-family: var(--serif); font-optical-sizing: auto; font-weight: 470;
   font-size: clamp(34px, 6vw, 56px); line-height: 1.05; letter-spacing: -0.02em;
   margin: 0 0 22px; color: var(--fg); text-wrap: balance;
 }
-.ob-title-accent { color: var(--lime); font-style: italic; font-weight: 460; }
+.ob-title-accent { color: var(--accent); font-style: italic; font-weight: 460; }
 .ob-lede {
   font-size: 16px; line-height: 1.6; color: var(--fg-soft);
   margin: 0 0 26px; max-width: 540px;
@@ -72,7 +72,7 @@
 .ob-assure li::before {
   content: ""; position: absolute; left: 4px; top: 7px;
   width: 7px; height: 7px; border-radius: 50%;
-  background: var(--lime-dim); border: 1px solid var(--lime);
+  background: var(--accent-dim); border: 1px solid var(--accent);
 }
 .ob-start { font-size: 15px; padding: 13px 22px; }
 .ob-meta { font-size: 12.5px; color: var(--fg-faint); margin: 16px 0 0; }
@@ -87,8 +87,8 @@
 .ob-progress { flex: none; height: 2px; background: rgba(255,255,255,0.06); position: relative; z-index: 5; }
 .ob-progress-bar {
   height: 100%; width: 0%;
-  background: linear-gradient(90deg, var(--lime), var(--lime-glow));
-  box-shadow: 0 0 12px rgba(145,212,95,0.6);
+  background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent);
   transition: width 620ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -125,7 +125,7 @@
   padding: 20px clamp(20px, 3.4vw, 40px) 12px;
 }
 /* the step counter, riding in the message's .speaker row */
-.ob-thread .speaker b { color: var(--lime); font-weight: 600; }
+.ob-thread .speaker b { color: var(--accent); font-weight: 600; }
 
 /* composer — .composer/.field/.send come from globals.css; these are the
    deltas for a growing textarea and the two extra controls */
@@ -149,7 +149,7 @@
 }
 .ob-icon:hover { color: var(--fg-soft); background: var(--raised); }
 .ob-icon svg { width: 17px; height: 17px; }
-.ob-icon.is-live { color: var(--lime); background: var(--lime-dim); animation: pulse 1.6s var(--ease) infinite; }
+.ob-icon.is-live { color: var(--accent); background: var(--accent-dim); animation: pulse 1.6s var(--ease) infinite; }
 
 .ob-attachments { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 8px; }
 .ob-attach-pill {
@@ -187,14 +187,14 @@
 .ob-brain-col { display: flex; flex-direction: column; min-width: 0; padding: 20px; }
 .ob-brain-box {
   position: relative; flex: 1; min-height: 0;
-  border: 1px solid rgba(145, 212, 95, 0.18);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   border-radius: 18px; overflow: hidden;
   background:
-    radial-gradient(130% 100% at 50% 42%, rgba(145, 212, 95, 0.07), transparent 58%),
+    radial-gradient(130% 100% at 50% 42%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 58%),
     radial-gradient(90% 120% at 88% 8%, rgba(167, 139, 218, 0.05), transparent 55%),
     radial-gradient(90% 120% at 10% 92%, rgba(95, 191, 168, 0.05), transparent 55%),
     #0d0f0d;
-  box-shadow: inset 0 0 80px -26px rgba(145, 212, 95, 0.20);
+  box-shadow: inset 0 0 80px -26px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .ob-brain-head {
   position: absolute; top: 16px; left: 18px; right: 18px; z-index: 2;
@@ -202,7 +202,7 @@
   pointer-events: none;
 }
 .ob-brain-title { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; color: var(--fg); }
-.ob-brain-sub { font-size: 11.5px; color: var(--lime-glow); font-variant: small-caps; letter-spacing: 0.02em; }
+.ob-brain-sub { font-size: 11.5px; color: var(--accent-glow); font-variant: small-caps; letter-spacing: 0.02em; }
 .ob-brain-box canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .ob-brain-box canvas:active { cursor: grabbing; }
 
@@ -221,7 +221,7 @@
 }
 .ob-ledger-item .lg-tick {
   flex: none; width: 14px; height: 14px; border-radius: 50%;
-  background: var(--lime-dim); display: grid; place-items: center;
+  background: var(--accent-dim); display: grid; place-items: center;
 }
 .ob-ledger-item .lg-tick svg { width: 8px; height: 8px; }
 .ob-ledger-item b { color: var(--fg); font-weight: 500; }
@@ -252,7 +252,7 @@
   background: rgba(12,12,12,0.88);
   padding: 16px 26px; border-radius: 999px; border: 1px solid var(--hairline);
 }
-.ob-synth-spark { color: var(--lime); animation: sparkspin 3s linear infinite; }
+.ob-synth-spark { color: var(--accent); animation: sparkspin 3s linear infinite; }
 @keyframes sparkspin { to { transform: rotate(360deg); } }
 
 /* ---- first beat: a contained sketch, not the whole screen. Deliberately
@@ -264,7 +264,7 @@
 }
 .ob-ask.is-sketch .ob-brain-box {
   border-radius: 18px;
-  border: 1px solid rgba(145, 212, 95, 0.18);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
 }
 /* the sketch's status sits below the card, quieter than the finale's pill */
 .ob-ask.is-sketch ~ .ob-synth-status { align-items: flex-end; padding-bottom: 14vh; }
@@ -279,7 +279,7 @@
   content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none;
   background:
     radial-gradient(70% 60% at 50% 50%, rgba(180, 232, 138, 0.92), transparent 70%),
-    rgba(145, 212, 95, 0.86);
+    color-mix(in srgb, var(--accent) 86%, transparent);
   opacity: 0; animation: synth-wash 620ms var(--ease) forwards;
 }
 @keyframes synth-wash { to { opacity: 1; } }
@@ -317,13 +317,13 @@
   grid-row: span 1;
   display: flex; flex-direction: column; justify-content: center;
   background:
-    radial-gradient(120% 100% at 20% 0%, rgba(145,212,95,0.10), transparent 60%), var(--card);
-  border-color: rgba(145,212,95,0.28);
+    radial-gradient(120% 100% at 20% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%), var(--card);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 .ob-oneword {
   font-family: var(--serif); font-optical-sizing: auto; font-weight: 480; font-style: italic;
   font-size: clamp(34px, 6vw, 52px); line-height: 1; letter-spacing: -0.02em;
-  color: var(--lime); text-wrap: balance;
+  color: var(--accent); text-wrap: balance;
 }
 .ob-oneword-note { font-size: 12.5px; color: var(--fg-soft); margin-top: 12px; line-height: 1.5; }
 
@@ -337,8 +337,8 @@
    one-word card used to */
 .ob-pitch-lead {
   margin-bottom: 16px;
-  background: radial-gradient(120% 100% at 15% 0%, rgba(145,212,95,0.09), transparent 62%), var(--card);
-  border-color: rgba(145,212,95,0.26);
+  background: radial-gradient(120% 100% at 15% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%), var(--card);
+  border-color: color-mix(in srgb, var(--accent) 26%, transparent);
 }
 .ob-pitch-lead p { font-size: clamp(19px, 2.5vw, 24px); }
 
@@ -364,8 +364,8 @@
 .ob-fact .ob-fact-val { font-size: 16px; font-weight: 500; color: var(--fg); line-height: 1.4; margin-top: 2px; }
 .ob-fact .ob-fact-val .ob-seg {
   display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
-  color: var(--lime-glow); background: var(--lime-dim);
-  border: 1px solid rgba(145,212,95,0.35); border-radius: 999px;
+  color: var(--accent-glow); background: var(--accent-dim);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 999px;
   padding: 1px 9px; margin-bottom: 6px;
 }
 .ob-goals-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 9px; }
@@ -375,7 +375,7 @@
 }
 .ob-goals-list li .gn {
   position: absolute; left: 0; top: 0;
-  font-size: 11px; font-weight: 600; color: var(--lime); font-variant-numeric: tabular-nums;
+  font-size: 11px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums;
 }
 
 /* what Allya can do — capability grid */
@@ -396,7 +396,7 @@
 .ob-cap .ob-cap-ic {
   flex: none; width: 30px; height: 30px; border-radius: 9px;
   display: grid; place-items: center; margin-top: 1px;
-  background: var(--lime-dim); border: 1px solid rgba(145,212,95,0.3);
+  background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .ob-cap.exp .ob-cap-ic { background: var(--human-bg); border-color: var(--human-border); }
 .ob-cap .ob-cap-ic svg { width: 15px; height: 15px; }
@@ -412,10 +412,10 @@
 .ob-launch {
   display: flex; align-items: center; justify-content: space-between; gap: 18px;
   background:
-    radial-gradient(120% 200% at 90% 50%, rgba(145,212,95,0.10), transparent 60%), var(--card);
-  border: 1px solid rgba(145,212,95,0.35);
+    radial-gradient(120% 200% at 90% 50%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%), var(--card);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 18px; padding: 22px 24px;
-  box-shadow: 0 0 40px -18px rgba(145,212,95,0.5);
+  box-shadow: 0 0 40px -18px color-mix(in srgb, var(--accent) 50%, transparent);
   flex-wrap: wrap;
 }
 .ob-launch-copy .t { font-family: var(--serif); font-weight: 450; font-size: 19px; color: var(--fg); }
@@ -524,12 +524,12 @@
   color: var(--fg);
 }
 .ob-mcq-pill.selected {
-  background: rgba(145, 212, 95, 0.12);
-  border-color: var(--lime);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--accent);
   color: var(--fg);
 }
 .ob-mcq-pill.selected:hover {
-  background: rgba(145, 212, 95, 0.18);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 /* mini-synth overlay */
 .ob-mini-synth {
