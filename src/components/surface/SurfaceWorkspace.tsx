@@ -28,6 +28,7 @@ import { Composer } from '@/components/workspace/Composer';
 import { ApprovalSheet } from '@/components/workspace/ApprovalSheet';
 import { Toast } from '@/components/workspace/Toast';
 import { AccountPill } from './AccountPill';
+import { SetupPrompt } from '@/components/service/SetupPrompt';
 import { SurfaceCanvas } from './SurfaceCanvas';
 import { ReviewBody, ReviewHead } from './ReviewSheet';
 import { markLaunch } from './launch';
@@ -84,14 +85,31 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
     setToast({ text, id: toastId.current });
   }, []);
 
-  const openSheet = useCallback((id: string) => {
-    setSheetCtx(id);
-    setReview(null);
-    setReviewError(undefined);
-    getReview(id)
-      .then(setReview)
-      .catch(() => setReviewError("Couldn't load this draft."));
-  }, []);
+  /* ---- a floor you haven't set up yet ----
+     You can read it, walk the brain, open dot pages. The moment you try to
+     make something happen — talk to Allya, review, approve — it asks for the
+     four answers first. `locked` is false on the workspace and on any floor
+     whose onboarding is done. */
+  const locked = !!surface && !surface.onboarded;
+  const [prompting, setPrompting] = useState(false);
+  const gate = useCallback(() => {
+    if (!locked) return false;
+    setPrompting(true);
+    return true;
+  }, [locked]);
+
+  const openSheet = useCallback(
+    (id: string) => {
+      if (gate()) return;
+      setSheetCtx(id);
+      setReview(null);
+      setReviewError(undefined);
+      getReview(id)
+        .then(setReview)
+        .catch(() => setReviewError("Couldn't load this draft."));
+    },
+    [gate],
+  );
 
   /* ---- the server's words become chat beats, one after another ---- */
   // chips can send a message, and sending is defined further down — the ref
@@ -130,6 +148,7 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
     (text: string) => {
       const t = text.trim();
       if (!t) return;
+      if (gate()) return;
       setEngaged(true);
       clearChips();
       say('you', t);
@@ -139,7 +158,7 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
           think(() => say('allya', "I couldn't reach the server just then. Say it again in a moment?"), 600),
         );
     },
-    [surfaceId, clearChips, say, think, playReply],
+    [surfaceId, clearChips, say, think, playReply, gate],
   );
 
   useEffect(() => {
@@ -400,6 +419,11 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
           <ReviewBody review={review} error={reviewError} onRetry={() => sheetCtx && openSheet(sheetCtx)} />
         )}
         approveLabel={() => review?.approveLabel ?? 'Approve'}
+      />
+      <SetupPrompt
+        lock={prompting ? (surface?.lock ?? null) : null}
+        surfaceId={surfaceId}
+        onClose={() => setPrompting(false)}
       />
       <Toast message={toast} onDone={() => setToast(null)} />
     </>

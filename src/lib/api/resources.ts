@@ -2,7 +2,7 @@
    be cached, prefetched and handed to useResource) and functions for writes. */
 
 import { get, invalidate, patch, post, prefetch } from './client';
-import type { Fact, Period, Reply, Review, WorkAction } from './types';
+import type { Fact, OnboardingResult, Period, Reply, Review, WorkAction } from './types';
 
 export const paths = {
   surfaces: () => '/surfaces',
@@ -15,7 +15,15 @@ export const paths = {
   conversation: (sid: string) => `/surfaces/${sid}/conversation`,
   review: (wid: string) => `/work/${wid}/review`,
   gate: () => '/gate',
+  onboarding: (sid: string) => `/surfaces/${sid}/onboarding`,
 };
+
+/** finish a floor's setup — the graph and the lock both change behind this */
+export async function completeOnboarding(sid: string, answers: Record<string, string>) {
+  const res = await post<OnboardingResult>(paths.onboarding(sid), { answers });
+  invalidate(`/surfaces/${sid}`); // the surface, its brain and its lock all moved
+  return res;
+}
 
 /** where a surface lives — the workspace is the root, services are slugs.
     Mirrors the `href` the API returns from /surfaces. */

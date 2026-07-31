@@ -183,6 +183,31 @@
 }
 .acct-out:hover { color: var(--fg); }
 
+/* ---- the floor isn't set up yet ----
+   Not a door. You can read the whole floor; this only appears the moment you
+   try to make something happen on it. */
+.setup-layer { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; }
+.setup-wash { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.62); }
+.setup-card {
+  position: relative; max-width: 430px; width: 100%;
+  display: grid; gap: 10px; justify-items: start;
+  padding: 22px 24px 20px;
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.95),
+    0 0 40px -18px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.setup-card h2 {
+  font-family: var(--serif); font-weight: 460; font-size: 21px; line-height: 1.3;
+  color: var(--fg); margin: 2px 0 0; text-wrap: balance;
+}
+.setup-card p { font-size: 14px; line-height: 1.55; color: var(--fg-soft); margin: 0; }
+.setup-act { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+
+/* the rail is unreachable until the branch it points at is real */
+.svc-dirs.is-provisional .svc-dir { opacity: 0.5; }
+
 /* a floor that doesn't exist */
 .nowhere {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;

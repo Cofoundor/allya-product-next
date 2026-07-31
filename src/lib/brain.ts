@@ -72,6 +72,8 @@ export interface NodeSpec {
   hidden?: boolean;
   /** this node is a place of its own — tapping it launches, it doesn't open */
   surface?: string;
+  /** a placeholder until this floor's onboarding fills it in — drawn faintly */
+  provisional?: boolean;
 }
 
 interface BrainNode extends NodeSpec {
@@ -1006,7 +1008,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       }
 
       // core — lighter centre for a lit look; flat fill for resting leaves
-      const base = (hub ? 0.98 : n.tier === 1 ? 0.73 : n.kids ? 0.62 : 0.48) * n.rev;
+      const base = (hub ? 0.98 : n.tier === 1 ? 0.73 : n.kids ? 0.62 : 0.48) * n.rev * (n.provisional ? 0.42 : 1);
       if (n.tier >= 2 && !n.kids && n.ex < 0.02) {
         ctx.fillStyle = hexA(col, base);
       } else {
@@ -1099,7 +1101,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       const target = free ? 1 : 0;
       n.lv = n.lv === undefined ? target : n.lv + (target - n.lv) * Math.min(1, ldt * 8);
       if (n.lv < 0.02) continue;
-      const rest = hub ? 0.9 : n.tier === 1 ? 0.55 : n.kids ? 0.5 : 0.3;
+      const rest = (hub ? 0.9 : n.tier === 1 ? 0.55 : n.kids ? 0.5 : 0.3) * (n.provisional ? 0.55 : 1);
       const la = clamp(rest + n.ex * 0.7 + breath * 0.4, 0, 1) * n.lv * fogOf(n);
       ctx.font = `${hub ? 600 : 500} ${fs}px "Inter Tight", system-ui, sans-serif`;
       ctx.fillStyle = hexA(n.tier >= 2 ? '#c7ccd4' : '#f3f4f6', la);

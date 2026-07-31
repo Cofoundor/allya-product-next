@@ -27,9 +27,18 @@ export interface BrainHeader {
   backHref: string | null;
 }
 
+export interface Lock {
+  title: string;
+  blurb: string;
+  cta: string;
+}
+
 export interface Surface {
   id: string;
   label: string;
+  /** false until this floor's own onboarding is done — it still renders */
+  onboarded: boolean;
+  lock: Lock | null;
   greeting: string;
   hint: string;
   placeholder: string;
@@ -54,6 +63,8 @@ export interface BrainNodeDto {
   hidden: boolean;
   /** this node opens a surface of its own instead of a panel */
   surface: string | null;
+  /** a placeholder until this floor's onboarding fills it in */
+  provisional: boolean;
 }
 
 export interface BrainGraph {
@@ -74,6 +85,53 @@ export interface User {
 export interface Session {
   token: string;
   user: User;
+}
+
+/* ---- a floor's own onboarding ---- */
+
+export interface ObCluster {
+  id: string;
+  label: string;
+  group: string;
+  /** 'answer' → split what was typed; 'fixed' → use `leaves` */
+  leavesFrom: 'answer' | 'fixed';
+  leaves: string[];
+  maxLeaves: number;
+}
+
+export interface ObQuestion {
+  key: string;
+  tag: string;
+  sub: string;
+  q: string;
+  type: 'short' | 'long' | 'choice';
+  placeholder: string | null;
+  example: string | null;
+  options: string[];
+  ack: string | null;
+  ackByOption: Record<string, string>;
+  learned: string;
+  cluster: ObCluster;
+}
+
+export interface ServiceOnboarding {
+  surfaceId: string;
+  label: string;
+  status: 'new' | 'complete';
+  title: string;
+  lede: string;
+  cta: string;
+  questions: ObQuestion[];
+  synth: string[];
+  doneTitle: string;
+  doneLede: string;
+  doneCta: string;
+}
+
+export interface OnboardingResult {
+  surfaceId: string;
+  status: 'complete';
+  learned: string[];
 }
 
 /** everything the sign-in page renders, graph included */
