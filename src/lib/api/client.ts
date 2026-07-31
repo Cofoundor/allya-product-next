@@ -7,7 +7,7 @@
    never wait on a round trip it could have made a second earlier.
    ============================================================ */
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://allya-product-api.onrender.com/api/v1';
 
 /* NEXT_PUBLIC_* is baked in at build time, so a deploy that forgot to set it
    ships a bundle pointing at the *visitor's* machine — every request fails
