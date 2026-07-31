@@ -9,6 +9,20 @@
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
 
+/* NEXT_PUBLIC_* is baked in at build time, so a deploy that forgot to set it
+   ships a bundle pointing at the *visitor's* machine — every request fails
+   and the page looks broken for no visible reason. Name it instead. */
+const LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/;
+export const misconfigured =
+  typeof window !== 'undefined' && LOCAL.test(API_URL) && !LOCAL.test(window.location.origin);
+
+if (misconfigured && typeof console !== 'undefined') {
+  console.error(
+    `[allya] NEXT_PUBLIC_API_URL is "${API_URL}", which points at the visitor's own machine. ` +
+      `Set it to the deployed API's origin + /api/v1 and rebuild.`,
+  );
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -25,6 +39,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  if (misconfigured) throw new ApiError(0, 'This build has no API address.');
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {

@@ -8,3 +8,8 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # NEXT_PUBLIC_API_URL is NOT set here on purpose — it differs per deploy and
+  # is baked into the client bundle at build time. Set it in the Netlify site's
+  # environment variables to the API's origin + /api/v1, then redeploy.
+  # Without it the build ships pointing at localhost and every request fails;
+  # src/lib/api/client.ts detects that case and says so in the console.
