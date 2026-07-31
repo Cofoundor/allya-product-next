@@ -27,6 +27,7 @@ import { WorkPane } from '@/components/workspace/WorkPane';
 import { Composer } from '@/components/workspace/Composer';
 import { ApprovalSheet } from '@/components/workspace/ApprovalSheet';
 import { Toast } from '@/components/workspace/Toast';
+import { AccountPill } from './AccountPill';
 import { SurfaceCanvas } from './SurfaceCanvas';
 import { ReviewBody, ReviewHead } from './ReviewSheet';
 import { markLaunch } from './launch';
@@ -324,6 +325,7 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
           <button type="button" className="kbd" title="Focus the composer" onClick={() => inputRef.current?.focus()}>
             ⌘K
           </button>
+          <AccountPill />
         </header>
 
         <main className={`workspace${tab === 'work' ? ' show-work' : ''}`}>

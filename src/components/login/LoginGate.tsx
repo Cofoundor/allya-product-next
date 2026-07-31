@@ -1,25 +1,34 @@
 'use client';
 
-import { useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { BrainCanvas } from '@/components/BrainCanvas';
-import { LOGIN_BRAIN_CROSS, LOGIN_BRAIN_NODES } from '@/lib/login-data';
+import { paths } from '@/lib/api/resources';
+import { useResource } from '@/lib/api/useResource';
+import { signIn } from '@/lib/api/session';
+import { ApiError } from '@/lib/api/client';
+import type { Gate } from '@/lib/api/types';
+import type { NodeSpec } from '@/lib/brain';
 
 type Status = { kind: 'idle' } | { kind: 'busy'; msg: string } | { kind: 'error'; msg: string };
 
 /* The gate: the company brain drifting full-bleed behind a dark well, with
    the sign-in form sitting in the quiet middle of it. The brain stays
-   touchable around the form — the well is only paint. */
+   touchable around the form — the well is only paint.
+
+   Everything it says, and the graph behind it, comes from /gate. The form
+   posts to /session: a bad email or password comes back 401 and lands in
+   the error state the design was built around. */
 export default function LoginGate() {
   const router = useRouter();
+  const gate = useResource<Gate>(paths.gate());
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const busy = status.kind === 'busy';
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
 
@@ -29,30 +38,39 @@ export default function LoginGate() {
     }
 
     setStatus({ kind: 'busy', msg: 'Signing you in…' });
-
-    /* ---- INTEGRATION POINT ----------------------------------------
-       No auth service is wired up yet. Until one is, the gate does what
-       a successful sign-in would do: hands you the workspace. Replace
-       the body of this timeout with the real call and keep the two
-       setStatus branches — the design already accounts for both.
-       ---------------------------------------------------------------- */
-    timer.current = setTimeout(() => {
+    try {
+      const session = await signIn(email.trim(), password);
+      setStatus({ kind: 'busy', msg: `Welcome back, ${session.user.name.split(' ')[0]}…` });
       router.push('/');
-    }, 900);
+    } catch (err) {
+      const e = err as ApiError;
+      setStatus({
+        kind: 'error',
+        msg:
+          e?.status === 401
+            ? 'That email and password don’t match an account.'
+            : e?.offline
+              ? 'Can’t reach the server. Try again in a moment.'
+              : 'Something went wrong signing you in.',
+      });
+    }
   }
 
   return (
     <>
-      <BrainCanvas
-        boxClassName="login-brain"
-        options={{
-          nodes: LOGIN_BRAIN_NODES,
-          cross: LOGIN_BRAIN_CROSS,
-          layout: 'cluster',
-          revealed: true,
-          thoughtEvery: 2.8,
-        }}
-      />
+      {/* the gate still stands if the graph can't be fetched — it's the way in */}
+      {gate.data ? (
+        <BrainCanvas
+          boxClassName="login-brain"
+          options={{
+            nodes: gate.data.brain.nodes as NodeSpec[],
+            cross: gate.data.brain.links,
+            layout: gate.data.brain.layout,
+            revealed: true,
+            thoughtEvery: 2.8,
+          }}
+        />
+      ) : null}
 
       <main className="gate">
         <div className="gate-inner rise-in">
@@ -63,11 +81,11 @@ export default function LoginGate() {
           </div>
 
           <h1 className="gate-title">
-            Welcome back to <em>ZeroTo10</em>.
+            {gate.data ? gate.data.headline : 'Welcome back to ZeroTo10.'}
           </h1>
           <p className="gate-lede">
-            Sign in and Allya picks up where you left off — the work in flight, the decisions waiting
-            on you, the whole company map.
+            {gate.data?.lede ??
+              'Sign in and Allya picks up where you left off — the work in flight, the decisions waiting on you, the whole company map.'}
           </p>
 
           <form className="gate-form" onSubmit={onSubmit} noValidate>
@@ -124,16 +142,12 @@ export default function LoginGate() {
           </div>
 
           <p className="gate-foot">
-            We&rsquo;re currently rolling out ZeroTo10.ai to selected users.
-            <br />
-            If you&rsquo;d like an account, please apply on{' '}
-            <a
-              href="https://www.linkedin.com/in/sanshat-bhatia"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              this link
-            </a>
+            {gate.data?.footnote ?? 'We’re currently rolling out ZeroTo10.ai to selected users.'}{' '}
+            {gate.data ? (
+              <a href={gate.data.footnoteLinkHref} target="_blank" rel="noopener noreferrer">
+                {gate.data.footnoteLinkLabel}
+              </a>
+            ) : null}
             .
           </p>
         </div>

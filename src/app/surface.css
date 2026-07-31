@@ -118,6 +118,41 @@
 /* the topbar lamp goes amber when the server is unreachable */
 .status-line .pulse.off { background: var(--human-ink, #d9a441); animation: none; }
 
+/* ---- who's signed in ---- */
+.acct-slot { width: 26px; height: 26px; flex: none; }
+.acct { position: relative; display: flex; flex: none; }
+.acct-btn {
+  appearance: none; cursor: pointer;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(145, 212, 95, 0.12);
+  border: 1px solid rgba(145, 212, 95, 0.35);
+  color: var(--lime); font-size: 10.5px; font-weight: 500; letter-spacing: 0.02em;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.acct-btn:hover, .acct-btn[aria-expanded='true'] {
+  background: rgba(145, 212, 95, 0.2); border-color: rgba(145, 212, 95, 0.65);
+}
+.acct-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 40;
+  min-width: 208px;
+  background: var(--card); border: 1px solid var(--hairline-strong);
+  border-radius: 12px; padding: 5px;
+  box-shadow: 0 16px 44px -14px rgba(0, 0, 0, 0.9);
+  transform-origin: top right;
+  animation: pagepick-in 180ms var(--ease) both;
+}
+.acct-who { display: grid; gap: 1px; padding: 9px 10px 10px; }
+.acct-name { font-size: 13px; color: var(--fg); }
+.acct-mail, .acct-co { font-size: 11.5px; color: var(--fg-faint); }
+.acct-out {
+  appearance: none; cursor: pointer; width: 100%; text-align: left;
+  background: none; border: none; border-top: 1px solid var(--hairline);
+  padding: 9px 10px 7px; margin-top: 2px;
+  font: inherit; font-size: 12.5px; color: var(--fg-soft);
+}
+.acct-out:hover { color: var(--fg); }
+
 /* a floor that doesn't exist */
 .nowhere {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;

@@ -58,10 +58,32 @@ export interface BrainNodeDto {
 
 export interface BrainGraph {
   surfaceId: string;
-  layout: 'web' | 'spray';
+  layout: 'web' | 'spray' | 'cluster';
   anchorId: string;
   nodes: BrainNodeDto[];
   links: [string, string][];
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  company: string;
+}
+
+export interface Session {
+  token: string;
+  user: User;
+}
+
+/** everything the sign-in page renders, graph included */
+export interface Gate {
+  headline: string;
+  lede: string;
+  footnote: string;
+  footnoteLinkLabel: string;
+  footnoteLinkHref: string;
+  brain: BrainGraph;
 }
 
 export interface WorkItem {

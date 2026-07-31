@@ -14,6 +14,7 @@ export const paths = {
     `/surfaces/${sid}/knowledge${date ? `?date=${date}` : period ? `?period=${period}` : ''}`,
   conversation: (sid: string) => `/surfaces/${sid}/conversation`,
   review: (wid: string) => `/work/${wid}/review`,
+  gate: () => '/gate',
 };
 
 /** where a surface lives — the workspace is the root, services are slugs.

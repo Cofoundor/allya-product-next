@@ -38,13 +38,39 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+/* ---- the session token ----
+   Kept here rather than in session.ts so that every request can attach it
+   without the two modules importing each other. */
+const TOKEN_KEY = 'allya.token';
+
+export function getToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null; // private mode: you just stay signed out
+  }
+}
+
+export function setToken(token: string | null) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   if (misconfigured) throw new ApiError(0, 'This build has no API address.');
+  const token = typeof window === 'undefined' ? null : getToken();
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  if (token) headers.authorization = `Bearer ${token}`;
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
       method,
-      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
