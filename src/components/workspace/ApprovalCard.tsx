@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { PressButton, PressDiv } from '@/components/Pressable';
-import type { WorkItem } from '@/lib/workspace-data';
+import type { WorkItem } from '@/lib/api/types';
 
 /* The one lime-lit card: something is waiting on your eyes. Used in both
    the work panel and the home canvas — the canvas strips its chrome in CSS. */

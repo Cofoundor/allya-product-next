@@ -2,23 +2,67 @@
 
 import { TickIcon } from '@/components/icons';
 import { ApprovalCard } from './ApprovalCard';
-import type { WorkItem } from '@/lib/workspace-data';
+import type { WorkItem } from '@/lib/api/types';
 
 /* The work panel — data-driven, and the visible proof this is a tool.
    Needs you / Running / Shipped today, each row carrying an origin pill:
    the honest 85/15 seam between agents and real experts. */
 export function WorkPane({
   work,
+  loading,
+  error,
+  onRetry,
   onOpenSheet,
   onUndo,
 }: {
   work: WorkItem[];
+  loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
   onOpenSheet: (id: string) => void;
   onUndo: (id: string) => void;
 }) {
   const needs = work.filter((w) => w.status === 'needs-you');
   const running = work.filter((w) => w.status === 'running');
   const shipped = work.filter((w) => w.status === 'shipped');
+
+  if (error) {
+    return (
+      <aside className="pane-work" aria-label="Work in motion">
+        <div className="work-head">
+          <h2>Work</h2>
+        </div>
+        <div className="work-row">
+          <div className="w-copy">
+            <div className="t">{error}</div>
+            <div className="s">
+              Nothing is lost — I just can&rsquo;t reach the server.{' '}
+              {onRetry ? (
+                <button type="button" className="link-btn" onClick={onRetry}>
+                  Try again
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  if (loading && !work.length) {
+    return (
+      <aside className="pane-work" aria-label="Work in motion">
+        <div className="work-head">
+          <h2>Work</h2>
+        </div>
+        <div className="sk-list">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div className="sk-row" key={i} />
+          ))}
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="pane-work" aria-label="Work in motion">

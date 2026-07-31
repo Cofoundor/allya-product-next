@@ -3,19 +3,21 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { paths } from '@/lib/api/resources';
+import { useResource } from '@/lib/api/useResource';
+import type { SurfaceSummary } from '@/lib/api/types';
 
-/* The caret next to the date: jump between the pages of the product.
+/* The caret next to the date: jump between the floors of the brain. The list
+   is whatever the backend says exists — adding a service there adds it here.
    Click-outside and Escape close it; wherever you are is marked. */
 
-const PAGES = [
-  { href: '/', label: 'Workspace', note: 'where the work lives' },
-  { href: '/onboarding', label: 'Onboarding', note: 'build your company brain' },
-];
+const EXTRA = [{ href: '/onboarding', label: 'Onboarding', note: 'build your company brain' }];
 
 export function PagePicker() {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const { data } = useResource<SurfaceSummary[]>(open ? paths.surfaces() : null);
 
   useEffect(() => {
     if (!open) return;
@@ -35,6 +37,8 @@ export function PagePicker() {
       document.removeEventListener('keydown', onKey, true);
     };
   }, [open]);
+
+  const pages = [...(data ?? []).map((s) => ({ href: s.href, label: s.label, note: s.note })), ...EXTRA];
 
   return (
     <div className="pagepick" ref={wrapRef}>
@@ -56,19 +60,27 @@ export function PagePicker() {
 
       {open ? (
         <div className="pagepick-menu" role="menu">
-          {PAGES.map((p) => (
-            <Link
-              key={p.href}
-              role="menuitem"
-              href={p.href}
-              className={pathname === p.href ? 'is-here' : undefined}
-              onClick={() => setOpen(false)}
-            >
-              <span className="pp-dot" />
-              {p.label}
-              <span className="pp-note">{p.note}</span>
-            </Link>
-          ))}
+          {data ? (
+            pages.map((p) => (
+              <Link
+                key={p.href}
+                role="menuitem"
+                href={p.href}
+                className={pathname === p.href ? 'is-here' : undefined}
+                onClick={() => setOpen(false)}
+              >
+                <span className="pp-dot" />
+                {p.label}
+                <span className="pp-note">{p.note}</span>
+              </Link>
+            ))
+          ) : (
+            <div className="sk-list">
+              {[0, 1, 2].map((i) => (
+                <div className="sk-line" key={i} />
+              ))}
+            </div>
+          )}
         </div>
       ) : null}
     </div>

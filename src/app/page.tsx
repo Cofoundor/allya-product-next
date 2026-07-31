@@ -1,6 +1,7 @@
-import Workspace from '@/components/workspace/Workspace';
+import SurfaceWorkspace from '@/components/surface/SurfaceWorkspace';
 import './workspace.css';
+import './surface.css';
 
 export default function Page() {
-  return <Workspace />;
+  return <SurfaceWorkspace surfaceId="workspace" />;
 }

@@ -32,12 +32,23 @@ export const GROUPS: Record<string, string> = {
   goals: '#91d45f',
   edge: '#a78bda',
 
-  /* the sign-in gate’s graph — the company as an outsider meets it
+  /* the sign-in gate's graph — the company as an outsider meets it
      (core and market above already carry the right tints) */
   product: '#91d45f',
   traction: '#5fbfa8',
   model: '#d9a441',
   team: '#a78bda',
+
+  /* branch tints — a service page gives each of its directions one, so a
+     cluster reads as a place and not just a shade of its parent */
+  b1: '#a78bda',
+  b2: '#91d45f',
+  b3: '#63c2d6',
+  b4: '#d9a441',
+  b5: '#5fbfa8',
+  b6: '#6f9fd8',
+  b7: '#d98a8a',
+  b8: '#c9b478',
 };
 
 const TAU = Math.PI * 2;
@@ -45,11 +56,19 @@ const TAU = Math.PI * 2;
 export interface NodeSpec {
   id: string;
   label: string;
-  tier: 0 | 1 | 2;
+  /** 0 hub, 1 department, 2 leaf — 3 exists only under an expanded department */
+  tier: 0 | 1 | 2 | 3;
   group: string;
   parent?: string;
+  /** what the canvas calls it, when the full name is too wide for the ring.
+      Everything else — the dot page, the rail — still uses `label`. */
+  short?: string;
   /** id of a WORK item this node mirrors — drives the "needs you" breathing */
   work?: string;
+  /** starts unborn in an otherwise-revealed graph; `reveal(id)` grows it in */
+  hidden?: boolean;
+  /** this node is a place of its own — tapping it launches, it doesn't open */
+  surface?: string;
 }
 
 interface BrainNode extends NodeSpec {
@@ -69,6 +88,9 @@ interface BrainNode extends NodeSpec {
   lv: number;
   /** cached label width in CSS px (set at resize) */
   lw: number;
+  /** how many children hang off it — a node with a tree under it carries
+      more visual weight than a leaf at the same depth */
+  kids: number;
 }
 
 export interface Cluster {
@@ -81,12 +103,22 @@ export interface Cluster {
 export interface BrainOptions {
   nodes?: NodeSpec[];
   cross?: [string, string][];
-  /** 'web' fans leaves out from the centre; 'cluster' fans them around their parent */
-  layout?: 'web' | 'cluster';
+  /** 'web' fans leaves out from the centre; 'cluster' fans them around their
+      parent; 'spray' anchors one node low, keeps the single cord to its
+      parent below it, and throws its whole tree up across the pane */
+  layout?: 'web' | 'cluster' | 'spray';
+  /** the node 'spray' anchors on */
+  anchorId?: string;
   /** true → nodes start fully drawn; false → they spring in */
   revealed?: boolean;
   radii?: Record<number, number>;
   scaleRange?: [number, number];
+  /** angular gap between sibling leaves — tighten it when there are many
+      departments, or neighbouring clusters interleave */
+  leafSpread?: number;
+  /** scales how far leaves sit from the hub — pull them in when their
+      labels are long enough to run off the edge */
+  leafReach?: number;
   thoughtEvery?: number;
   /** nodes that need the founder's eyes breathe */
   isLive?: (node: NodeSpec) => boolean;
@@ -94,6 +126,9 @@ export interface BrainOptions {
   pickTarget?: (nodes: NodeSpec[]) => NodeSpec | undefined;
   /** a tap on a node opens its page — the brain re-centres and fogs the rest */
   onOpenNode?: (info: OpenNodeInfo) => void;
+  /** a tap on a node that carries a `surface` doesn't open a panel — it
+      leaves. The caller decides when to actually navigate. */
+  onLaunch?: (id: string, surface: string) => void;
 }
 
 /** what a tapped node hands to the page that grows out of it */
@@ -131,6 +166,16 @@ export interface BrainHandle {
   readonly focus: string | null;
   /** send a thought toward a cluster (or anywhere) — used by the MCQs */
   pulse(id?: string): void;
+  /** grow a node that was seeded `hidden` (with its edge to its parent) */
+  reveal(id: string): void;
+  /** glide the camera onto a node — no fog, nothing "opens"; pass null to
+      frame the whole graph again */
+  frame(id: string | null, zoom?: number, snap?: boolean): void;
+  /** fly into a node and leave — `done` fires as the flight ends, which is
+      when the caller should change route */
+  launchInto(id: string, done?: () => void): void;
+  /** pick that flight up on the other side, mid-air */
+  arriveInto(id: string): void;
   /** add/relabel a single leaf so an MCQ answer shows up in the graph */
   upsertSatellite(parentId: string, slotKey: string, label: string): void;
   removeSatellite(slotKey: string): void;
@@ -160,8 +205,16 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   const ctx = canvas.getContext('2d')!;
   const layoutMode = opts.layout ?? 'web';
   const revealed = opts.revealed ?? true;
-  const R = opts.radii ?? (layoutMode === 'web' ? { 0: 7, 1: 4.8, 2: 3.1 } : { 0: 8.5, 1: 5, 2: 3.3 });
-  const [sMin, sMax] = opts.scaleRange ?? (layoutMode === 'web' ? [0.82, 1.5] : [0.85, 1.7]);
+  const R =
+    opts.radii ??
+    (layoutMode === 'cluster' ? { 0: 8.5, 1: 5, 2: 3.3 } : { 0: 7, 1: 4.8, 2: 3.1, 3: 2.7 });
+  const [sMin, sMax] = opts.scaleRange ?? (layoutMode === 'cluster' ? [0.85, 1.7] : [0.82, 1.5]);
+  /** tier 3 only exists under an expanded department; everything else falls back */
+  const radiusOf = (t: number) => R[t] ?? R[2];
+  /* a node with a tree under it reads as a place, not a thought — so weight
+     is by depth AND by whether anything hangs off it */
+  const labelSize = (n: BrainNode) =>
+    n.tier === 0 ? 12.7 : n.tier === 1 ? 11.2 : n.kids ? 10.8 : n.tier === 3 ? 9.4 : 10;
   const thoughtEvery = opts.thoughtEvery ?? 5;
 
   let W = 0;
@@ -177,7 +230,16 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   // that isn't the focus or a neighbour fogs back. All four ease toward *T.
   const cam = { x: 0, y: 0, z: 1, fog: 0, xT: 0, yT: 0, zT: 1, fogT: 0 };
   let focusNode: BrainNode | null = null;
+  /** the camera rides this node without fogging anything — used by the
+      intro, which travels the trunk before the branch opens */
+  let panNode: BrainNode | null = null;
+  let baseZoom = 1;
   let lastLabelT = 0;
+  /** 0..1 motion blur: while it's up, every node trails a speed line away
+      from wherever the camera is heading. This is the whoosh. */
+  let warp = 0;
+  /** the camera is mid-flight — a layout probe must not snap it home */
+  let camFlying = false;
 
   // world ↔ screen (the camera puts cam.x/y at the centre of the box)
   const toScreen = (x: number, y: number): [number, number] => [
@@ -208,7 +270,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   const tSeed = Math.random() * 1000;
   const revealSprings = new Set<Spring>();
 
-  const nodeR = (n: BrainNode) => R[n.tier] * S * (0.2 + n.rev * 0.8) * (1 + n.ex * 0.5);
+  const nodeR = (n: BrainNode) => radiusOf(n.tier) * S * (0.2 + n.rev * 0.8) * (1 + n.ex * 0.5);
 
   function link(a: string, b: string) {
     edges.push([a, b]);
@@ -227,13 +289,15 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       vx: 0,
       vy: 0,
       ex: 0,
-      rev: revealed ? 1 : 0,
+      rev: revealed && !spec.hidden ? 1 : 0,
       phase: Math.random() * TAU,
       lv: 1,
       lw: 0,
+      kids: 0,
     };
     nodes.push(n);
     nodeById[n.id] = n;
+    if (parent) parent.kids += 1;
     if (spec.parent && nodeById[spec.parent]) link(spec.parent, n.id);
     if (!revealed) {
       const s = new Spring(0, {
@@ -250,6 +314,29 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     return n;
   }
 
+  /** grow one node that was seeded `hidden` — its edge fades up with it */
+  function revealNode(id: string) {
+    const n = nodeById[id];
+    if (!n || n.rev >= 1) return;
+    const s = new Spring(n.rev, {
+      response: 0.6,
+      damping: 0.74,
+      onframe: (p, _v, settled) => {
+        n.rev = p;
+        if (settled) revealSprings.delete(s);
+      },
+    });
+    revealSprings.add(s);
+    // it grows out of its parent, so it starts there and springs to its home
+    const parent = n.parent ? nodeById[n.parent] : null;
+    if (parent) {
+      n.x = parent.x;
+      n.y = parent.y;
+    }
+    s.to(1);
+    start();
+  }
+
   /* ---- home positions ---- */
   function layout() {
     const cx = W / 2;
@@ -264,23 +351,66 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     if (layoutMode === 'web') {
       // departments on an ellipse; leaves fan outward from the CENTRE with a
       // staggered radius, which reads as depth and keeps clusters apart
+      const reach = opts.leafReach ?? 1;
       const rx1 = W * 0.22;
       const ry1 = H * 0.3;
-      const rx2 = W * 0.4;
-      const ry2 = H * 0.4;
+      const rx2 = W * 0.4 * reach;
+      const ry2 = H * 0.4 * reach;
       depts.forEach((d, i) => {
         const a = -Math.PI / 2 + (i / Math.max(1, depts.length)) * TAU;
         d.hx = cx + Math.cos(a) * rx1;
         d.hy = cy + Math.sin(a) * ry1;
         d.angle = a;
       });
+      // keep sibling leaves inside their own slice of the ring
+      const spread = opts.leafSpread ?? 0.3;
       depts.forEach((d) => {
         const leaves = nodes.filter((n) => n.parent === d.id);
         leaves.forEach((l, j) => {
-          const a = (d.angle ?? 0) + (j - (leaves.length - 1) / 2) * 0.3;
+          const a = (d.angle ?? 0) + (j - (leaves.length - 1) / 2) * spread;
           const depth = 1 + (j % 2) * 0.2;
           l.hx = cx + Math.cos(a) * rx2 * depth;
           l.hy = cy + Math.sin(a) * ry2 * depth;
+        });
+      });
+    } else if (layoutMode === 'spray') {
+      /* One service, opened. The anchor sits low with its single cord running
+         down to the company node at the very bottom edge — that one link is
+         what keeps this the same brain and not a second one — and its whole
+         tree is thrown upward across the rest of the pane. Nothing but the
+         cord lives below the anchor. */
+      const reach = opts.leafReach ?? 1;
+      const a = opts.anchorId ? nodeById[opts.anchorId] : null;
+      if (!a) return;
+
+      a.hx = cx;
+      a.hy = H * 0.8;
+      const root = a.parent ? nodeById[a.parent] : null;
+      if (root) {
+        root.hx = cx;
+        root.hy = H * 0.975;
+      }
+
+      const branches = nodes.filter((n) => n.parent === a.id);
+      const up = -Math.PI / 2;
+      // a wide fan needs the room; four branches would look stretched in it
+      const span = Math.PI * (branches.length >= 6 ? 0.86 : 0.62);
+      const step = span / Math.max(1, branches.length - 1);
+      const spread = opts.leafSpread ?? 0.3;
+
+      branches.forEach((b, i) => {
+        const ang = branches.length === 1 ? up : up + (i - (branches.length - 1) / 2) * step;
+        // alternate the ring depth so neighbouring labels aren't shoulder to shoulder
+        const dd = 1 + (i % 2) * 0.12;
+        b.hx = a.hx + Math.cos(ang) * W * 0.3 * dd;
+        b.hy = a.hy + Math.sin(ang) * H * 0.26 * dd;
+        b.angle = ang;
+        const kids = nodes.filter((n) => n.parent === b.id);
+        kids.forEach((k, j) => {
+          const ka = ang + (j - (kids.length - 1) / 2) * spread;
+          const depth = 1 + (j % 2) * 0.14;
+          k.hx = a.hx + Math.cos(ka) * W * 0.34 * depth * reach;
+          k.hy = a.hy + Math.sin(ka) * H * 0.62 * depth * reach;
         });
       });
     } else {
@@ -332,14 +462,17 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     layout();
     for (const n of nodes) {
-      const hub = n.tier === 0;
-      ctx.font = `${hub ? 600 : 500} ${(hub ? 12.7 : n.tier === 1 ? 11.2 : 10) * clamp(S, 0.9, 1.22)}px "Inter Tight", system-ui, sans-serif`;
-      n.lw = ctx.measureText(n.label).width;
+      ctx.font = `${n.tier === 0 ? 600 : 500} ${labelSize(n) * clamp(S, 0.9, 1.22)}px "Inter Tight", system-ui, sans-serif`;
+      n.lw = ctx.measureText(n.short ?? n.label).width;
     }
-    // with nothing focused the camera sits at the centre of the box
-    if (!focusNode) {
-      cam.x = cam.xT = W / 2;
-      cam.y = cam.yT = H / 2;
+    // with nothing focused or tracked the camera sits at the centre of the box
+    if (!focusNode && !panNode) {
+      cam.xT = W / 2;
+      cam.yT = H / 2;
+      if (!camFlying) {
+        cam.x = cam.xT;
+        cam.y = cam.yT;
+      }
     }
     return true;
   }
@@ -366,7 +499,8 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
 
   function defaultTarget(): BrainNode | undefined {
     if (opts.pickTarget) return opts.pickTarget(nodes) as BrainNode | undefined;
-    const leaves = nodes.filter((n) => n.tier === 2);
+    // a thought lands on a leaf — whatever depth the leaves happen to be at
+    const leaves = nodes.filter((n) => n.tier > 0 && !n.kids && n.rev > 0.9);
     const pool = leaves.length ? leaves : nodes;
     return pool[(Math.random() * pool.length) | 0];
   }
@@ -381,7 +515,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
 
   function bloom() {
     nodes
-      .filter((n) => n.tier === 2)
+      .filter((n) => n.tier > 0 && !n.kids)
       .forEach((n, i) => window.setTimeout(() => fireThought(n), i * 90));
   }
 
@@ -449,7 +583,13 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   /* ---- tap a dot: the brain re-centres on it, everything else fogs out,
      and its page grows out of the node ---- */
   function openNode(n: BrainNode | null | undefined) {
-    if (!n || !opts.onOpenNode) return;
+    if (!n) return;
+    // a node that owns a surface is a destination, not a panel
+    if (n.surface && opts.onLaunch) {
+      opts.onLaunch(n.id, n.surface);
+      return;
+    }
+    if (!opts.onOpenNode) return;
     if (n.tier === 0) {
       // the hub is home — tapping it backs all the way out
       clearFocus();
@@ -457,7 +597,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       return;
     }
     focusNode = n;
-    cam.zT = n.tier === 1 ? 1.9 : 2.3;
+    cam.zT = baseZoom * (n.tier === 1 ? 1.9 : n.tier === 2 ? 2.3 : 2.6);
     cam.fogT = 1;
     excite(n, 1.2);
     fireThought(n);
@@ -480,11 +620,88 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
 
   function clearFocus() {
     focusNode = null;
-    cam.xT = W / 2;
-    cam.yT = H / 2;
-    cam.zT = 1;
+    if (!panNode) {
+      cam.xT = W / 2;
+      cam.yT = H / 2;
+    }
+    cam.zT = baseZoom;
     cam.fogT = 0;
     start(); // the loop may have idled out while the page was up
+  }
+
+  /* Glide the camera onto a node without opening anything — the intro walks
+     the trunk this way, then hands the frame back to the whole graph. */
+  function frameOn(id: string | null, zoom = 1, snap = false) {
+    resize(); // a snap before the first layout would frame world (0,0)
+    baseZoom = zoom;
+    cam.zT = zoom;
+    panNode = id ? nodeById[id] ?? null : null;
+    if (!panNode) {
+      cam.xT = W / 2;
+      cam.yT = H / 2;
+    } else {
+      cam.xT = panNode.x;
+      cam.yT = panNode.y;
+    }
+    if (snap || prefersReducedMotion()) {
+      cam.x = cam.xT;
+      cam.y = cam.yT;
+      cam.z = cam.zT;
+      camFlying = false;
+    }
+    start();
+  }
+
+  /* ---- leaving, and arriving ----------------------------------------
+     A service node isn't a panel, it's a place. Tapping one flies the camera
+     into it: the graph converges on that node, everything else streaks past
+     and fogs out, and the caller changes route as the flight ends. The page
+     you land on calls arriveInto() to pick the same motion up mid-air, so the
+     two halves read as one move rather than a navigation. */
+
+  function launchInto(id: string, done?: () => void) {
+    const n = nodeById[id];
+    if (!n) {
+      done?.();
+      return;
+    }
+    if (prefersReducedMotion()) {
+      done?.();
+      return;
+    }
+    focusNode = n;
+    panNode = null;
+    camFlying = true;
+    cam.zT = 3.4;
+    cam.fogT = 1;
+    excite(n, 1.4);
+    warp = 1;
+    // the whole graph throws a thought at it on the way out
+    nodes.forEach((o, i) => {
+      if (o !== n) window.setTimeout(() => fireEdge(o, n, 0), i * 14);
+    });
+    start();
+    window.setTimeout(() => done?.(), 520);
+  }
+
+  function arriveInto(id: string) {
+    const n = nodeById[id];
+    if (!n) return;
+    if (!resize() || prefersReducedMotion()) {
+      frameOn(null, 1, true);
+      return;
+    }
+    // land still moving: pushed in on the anchor, streaks decaying...
+    panNode = n;
+    cam.x = cam.xT = n.x;
+    cam.y = cam.yT = n.y;
+    cam.z = cam.zT = 2.4;
+    cam.fog = cam.fogT = 0;
+    warp = 0.8;
+    // ...then coast out to the settled frame
+    frameOn(null, 1);
+    camFlying = true;
+    start();
   }
 
   const onPointerMove = (e: PointerEvent) => {
@@ -540,8 +757,8 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       pHist.length > 1 &&
       Math.hypot(pHist[pHist.length - 1].x - pHist[0].x, pHist[pHist.length - 1].y - pHist[0].y);
     if (!moved || moved * cam.z < 4) {
-      // it was a tap: open its page where that's wired up, else just think
-      if (opts.onOpenNode) openNode(dragNode);
+      // it was a tap: open or launch where that's wired up, else just think
+      if (opts.onOpenNode || opts.onLaunch) openNode(dragNode);
       else fireThought(dragNode);
     }
     dragNode = null;
@@ -602,16 +819,31 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       n.y += n.vy * dt;
     }
     for (const n of nodes) n.ex = Math.max(0, n.ex - dt * 1.1);
-    // camera + fog follow the focused node
+    // camera + fog follow the focused node; failing that, whatever the
+    // intro has asked the camera to ride
     if (focusNode) {
       cam.xT = focusNode.x;
       cam.yT = focusNode.y;
+    } else if (panNode) {
+      cam.xT = panNode.x;
+      cam.yT = panNode.y;
     }
     const k = 1 - Math.exp(-6.5 * dt);
     cam.x += (cam.xT - cam.x) * k;
     cam.y += (cam.yT - cam.y) * k;
     cam.z += (cam.zT - cam.z) * k;
     cam.fog += (cam.fogT - cam.fog) * k;
+    // once a flight has coasted to a stop, layout probes may recentre again
+    if (
+      camFlying &&
+      !focusNode &&
+      !panNode &&
+      Math.abs(cam.x - cam.xT) < 0.6 &&
+      Math.abs(cam.y - cam.yT) < 0.6 &&
+      Math.abs(cam.z - cam.zT) < 0.01
+    ) {
+      camFlying = false;
+    }
   }
 
   /* ---- draw ---- */
@@ -716,8 +948,8 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       }
 
       // core — lighter centre for a lit look; flat fill for resting leaves
-      const base = (hub ? 0.98 : n.tier === 1 ? 0.73 : 0.48) * n.rev;
-      if (n.tier === 2 && n.ex < 0.02) {
+      const base = (hub ? 0.98 : n.tier === 1 ? 0.73 : n.kids ? 0.62 : 0.48) * n.rev;
+      if (n.tier >= 2 && !n.kids && n.ex < 0.02) {
         ctx.fillStyle = hexA(col, base);
       } else {
         const cg = ctx.createRadialGradient(n.x - r * 0.3, n.y - r * 0.3, 0, n.x, n.y, r);
@@ -747,11 +979,45 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     ctx.globalAlpha = 1;
     ctx.restore();
 
+    /* ---- the whoosh: speed lines in screen space ----
+       Everything trails away from wherever the camera is flying, at its own
+       alpha rather than the fogged one — the streak IS the motion, and it
+       should stay bright while the thing it came from drops back. */
+    if (warp > 0.01) {
+      const [ox, oy] = focusNode ? toScreen(focusNode.x, focusNode.y) : [W / 2, H / 2];
+      ctx.lineCap = 'round';
+      for (const n of nodes) {
+        if (n.rev < 0.02 || n === focusNode) continue;
+        const [sx, sy] = toScreen(n.x, n.y);
+        let dx = sx - ox;
+        let dy = sy - oy;
+        const d = Math.hypot(dx, dy);
+        if (d < 1) continue;
+        dx /= d;
+        dy /= d;
+        const len = Math.min(190, 26 + d * 0.7) * warp;
+        const col = GROUPS[n.group] || '#91d45f';
+        const g = ctx.createLinearGradient(sx, sy, sx + dx * len, sy + dy * len);
+        g.addColorStop(0, hexA(col, 0.6 * warp));
+        g.addColorStop(1, hexA(col, 0));
+        ctx.strokeStyle = g;
+        ctx.lineWidth = Math.max(1, nodeR(n) * cam.z * 0.85);
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + dx * len, sy + dy * len);
+        ctx.stroke();
+      }
+      ctx.lineCap = 'butt';
+    }
+
     // ---- labels: greedy de-overlap in screen space ----
     const lnow = performance.now();
     const ldt = lastLabelT ? Math.min(0.1, (lnow - lastLabelT) / 1000) : 0;
     lastLabelT = lnow;
-    const order = nodes.slice().sort((a, b) => (a.tier - b.tier) || ((b.ex + (opts.isLive?.(b) ? 0.5 + 0.5 * Math.sin(time * 2.4 + b.phase) : 0)) - (a.ex + (opts.isLive?.(a) ? 0.5 + 0.5 * Math.sin(time * 2.4 + a.phase) : 0))));
+    // labels are claimed shallowest first, and a node with a tree under it
+    // outranks a leaf at the same depth — a branch you can walk into should
+    // never lose its name to one of its own siblings' thoughts
+    const order = nodes.slice().sort((a, b) => (a.tier - b.tier) || ((b.kids ? 1 : 0) - (a.kids ? 1 : 0)) || ((b.ex + (opts.isLive?.(b) ? 0.5 + 0.5 * Math.sin(time * 2.4 + b.phase) : 0)) - (a.ex + (opts.isLive?.(a) ? 0.5 + 0.5 * Math.sin(time * 2.4 + a.phase) : 0))));
     const placed: { l: number; r: number; t: number; b: number }[] = [];
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -760,7 +1026,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       const hub = n.tier === 0;
       const live = opts.isLive?.(n) ?? false;
       const breath = live ? 0.5 + 0.5 * Math.sin(time * 2.4 + n.phase) : 0;
-      const fs = (hub ? 12.7 : n.tier === 1 ? 11.2 : 10) * clamp(S, 0.9, 1.22);
+      const fs = labelSize(n) * clamp(S, 0.9, 1.22);
       const w = n.lw || 0;
       const r = nodeR(n) * (hub ? 1 + 0.05 * Math.sin(time * 1.6) : 1);
       const [nsx, nsy] = toScreen(n.x, n.y);
@@ -775,11 +1041,11 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       const target = free ? 1 : 0;
       n.lv = n.lv === undefined ? target : n.lv + (target - n.lv) * Math.min(1, ldt * 8);
       if (n.lv < 0.02) continue;
-      const rest = hub ? 0.9 : n.tier === 1 ? 0.55 : 0.3;
+      const rest = hub ? 0.9 : n.tier === 1 ? 0.55 : n.kids ? 0.5 : 0.3;
       const la = clamp(rest + n.ex * 0.7 + breath * 0.4, 0, 1) * n.lv * fogOf(n);
       ctx.font = `${hub ? 600 : 500} ${fs}px "Inter Tight", system-ui, sans-serif`;
-      ctx.fillStyle = hexA(n.tier === 2 ? '#c7ccd4' : '#f3f4f6', la);
-      ctx.fillText(n.label, lx, ly);
+      ctx.fillStyle = hexA(n.tier >= 2 ? '#c7ccd4' : '#f3f4f6', la);
+      ctx.fillText(n.short ?? n.label, lx, ly);
     }
   }
 
@@ -813,6 +1079,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     pulses = pulses.filter((s) => s.t < 1);
     for (const rp of ripples) rp.t += dt / 0.7;
     ripples = ripples.filter((rp) => rp.t < 1);
+    if (warp > 0) warp = Math.max(0, warp - dt * 1.7);
   }
 
   function frame(now: number) {
@@ -837,6 +1104,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       pulses.length ||
       ripples.length ||
       revealSprings.size ||
+      warp > 0.01 ||
       Math.abs(cam.zT - cam.z) > 0.002 ||
       Math.abs(cam.fogT - cam.fog) > 0.002 ||
       Math.abs(cam.xT - cam.x) > 0.4 ||
@@ -918,6 +1186,10 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     pulse(id?: string) {
       fireThought(id ? nodeById[id] : undefined);
     },
+    reveal: revealNode,
+    frame: frameOn,
+    launchInto,
+    arriveInto,
     // an MCQ answer plants a labelled leaf; changing the answer relabels the
     // same node, clearing it removes it
     upsertSatellite(parentId: string, slotKey: string, label: string) {

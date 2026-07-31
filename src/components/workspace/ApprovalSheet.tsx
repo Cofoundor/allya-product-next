@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Spring, clamp, project, rubberband } from '@/lib/spring';
 import { useMediaQuery } from '@/lib/hooks';
-import { SheetBody, SheetHead, sheetApproveLabel } from './SheetContent';
 
 /* ============================================================
    Approval surface — axis-aware: a right-hand peek panel on desktop,
@@ -18,9 +17,22 @@ interface Props {
   onClose: () => void;
   onApprove: (context: string) => void;
   onEdit: (context: string) => void;
+  /** the gesture and the chrome are the same everywhere; what's inside comes
+      from whatever the server says about the item under review */
+  renderHead: (context: string) => ReactNode;
+  renderBody: (context: string) => ReactNode;
+  approveLabel: (context: string) => string;
 }
 
-export function ApprovalSheet({ context, onClose, onApprove, onEdit }: Props) {
+export function ApprovalSheet({
+  context,
+  onClose,
+  onApprove,
+  onEdit,
+  renderHead,
+  renderBody,
+  approveLabel,
+}: Props) {
   // what's rendered — kept alive through the close animation. `gen` bumps on
   // every open so re-opening the same item still replays the entrance.
   const [render, setRender] = useState<{ ctx: string; gen: number } | null>(null);
@@ -208,14 +220,14 @@ export function ApprovalSheet({ context, onClose, onApprove, onEdit }: Props) {
         >
           <div className="grabber" />
         </div>
-        <div className="sheet-head">{ctx ? <SheetHead context={ctx} /> : null}</div>
-        <div className="sheet-body">{ctx ? <SheetBody context={ctx} /> : null}</div>
+        <div className="sheet-head">{ctx ? renderHead(ctx) : null}</div>
+        <div className="sheet-body">{ctx ? renderBody(ctx) : null}</div>
         <div className="sheet-foot">
           <button type="button" className="ghost-btn" onClick={() => ctx && onEdit(ctx)}>
             Ask for a change
           </button>
           <button type="button" className="cta" onClick={() => ctx && onApprove(ctx)}>
-            <span>{ctx ? sheetApproveLabel(ctx) : 'Approve'}</span>
+            <span>{ctx ? approveLabel(ctx) : 'Approve'}</span>
           </button>
         </div>
       </div>

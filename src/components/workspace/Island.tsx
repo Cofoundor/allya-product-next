@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Spring } from '@/lib/spring';
 import { useReducedMotion, useTimers } from '@/lib/hooks';
-import type { WorkItem } from '@/lib/workspace-data';
+import type { WorkItem, WorkSummary } from '@/lib/api/types';
 
 /* ============================================================
    Dynamic island — a split pill pinned to the top of the Talk pane.
@@ -20,21 +20,20 @@ import type { WorkItem } from '@/lib/workspace-data';
 const SCROLL_PX_PER_SEC = 34;
 
 function shortTitle(w: WorkItem) {
-  if (w.id === 'newsletter') return 'Approve next week’s newsletter';
-  if (w.status === 'needs-you') return `Review — ${w.title || 'waiting on you'}`;
-  return (w.title || '').replace(
-    / from last week’s signups| against your approved JD| matched to your space/,
-    '',
-  );
+  if (w.status === 'needs-you') return `Review — ${w.title ?? w.whoRole ?? 'waiting on you'}`;
+  // the ticker has one line; trim the qualifying clause off the end
+  return (w.title ?? '').replace(/ (from|against|matched|across|for) .*$/, '');
 }
 
 interface IslandProps {
   work: WorkItem[];
+  /** the two counters the work list can't derive on its own */
+  summary: WorkSummary | null;
   /** open an item's approval sheet from the expanded panel */
   onOpenWork: (id: string) => void;
 }
 
-export function Island({ work, onOpenWork }: IslandProps) {
+export function Island({ work, summary, onOpenWork }: IslandProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const kpiWinRef = useRef<HTMLDivElement>(null);
   const todoRef = useRef<HTMLDivElement>(null);
@@ -51,14 +50,14 @@ export function Island({ work, onOpenWork }: IslandProps) {
   const kpis = useMemo(() => {
     const running = work.filter((w) => w.status === 'running').length;
     const needs = work.filter((w) => w.status === 'needs-you').length;
-    const shipped = work.filter((w) => w.status === 'shipped').length + 12; // +12 earlier this week
+    const shipped = work.filter((w) => w.status === 'shipped').length + (summary?.shippedEarlier ?? 0);
     return [
       { n: String(shipped), l: 'shipped this week' },
       { n: String(running), l: running === 1 ? 'agent running' : 'agents running' },
       { n: String(needs), l: needs === 1 ? 'thing needs you' : 'things need you' },
-      { n: '₹0', l: 'spent · first month free' },
+      { n: summary?.spendLabel ?? '—', l: summary?.spendNote ?? 'spend' },
     ];
-  }, [work]);
+  }, [work, summary]);
 
   const todos = useMemo(() => {
     const needs = work.filter((w) => w.status === 'needs-you').map((w) => ({ needs: true, t: shortTitle(w) }));
@@ -256,7 +255,8 @@ export function Island({ work, onOpenWork }: IslandProps) {
             ))}
             <div className="idet-group">This week</div>
             <div className="idet-note">
-              {shipped.length + 12} shipped · {running.length} in flight · {needsYou.length} waiting on you.
+              {shipped.length + (summary?.shippedEarlier ?? 0)} shipped · {running.length} in flight ·{' '}
+              {needsYou.length} waiting on you.
             </div>
             <div className="idet-note">Nothing leaves the building without your approval.</div>
           </div>

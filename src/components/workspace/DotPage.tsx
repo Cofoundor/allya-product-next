@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import type { OpenNodeInfo } from '@/lib/brain';
-import type { WorkItem } from '@/lib/workspace-data';
+import type { WorkItem } from '@/lib/api/types';
 import { useReducedMotion } from '@/lib/hooks';
 
 /* ============================================================
@@ -32,9 +33,28 @@ interface DotPageProps {
   onClose: () => void;
   onGoto: (id: string) => void;
   onAsk: (label: string) => void;
+  /** group → what this place is, in Allya's words (the marketing brain has its own) */
+  deptCopy?: Record<string, string>;
+  /** what a department, a branch below one, and a leaf are called here */
+  deptWord?: string;
+  branchWord?: string;
+  leafWord?: string;
+  /** some dots are whole pages of their own — Marketing opens its own brain */
+  deepLink?: (info: OpenNodeInfo) => { href: string; label: string; note?: string } | null;
 }
 
-export function DotPage({ info, work, onClose, onGoto, onAsk }: DotPageProps) {
+export function DotPage({
+  info,
+  work,
+  onClose,
+  onGoto,
+  onAsk,
+  deptCopy = DEPT_COPY,
+  deptWord = 'department',
+  branchWord,
+  leafWord = 'thought',
+  deepLink,
+}: DotPageProps) {
   const reduced = useReducedMotion();
 
   // Escape closes, and so does the browser's back button
@@ -52,7 +72,9 @@ export function DotPage({ info, work, onClose, onGoto, onAsk }: DotPageProps) {
 
   if (!info) return null;
 
-  const dept = info.tier === 1;
+  // a place, not a thought: a department, or anything with a tree under it
+  const dept = info.tier === 1 || info.children.length > 0;
+  const deep = deepLink?.(info) ?? null;
   // work that belongs to this dot: its own, or any of its children's
   const ids = [info.work, ...info.children.map((c) => c.work)].filter(Boolean);
   const mine = work.filter((w) => ids.includes(w.id));
@@ -86,7 +108,7 @@ export function DotPage({ info, work, onClose, onGoto, onAsk }: DotPageProps) {
             </button>
             <span className="dot-crumb">
               {info.parent ? `${info.parent} · ` : ''}
-              {dept ? 'department' : 'thought'}
+              {info.tier === 1 ? deptWord : dept ? branchWord ?? deptWord : leafWord}
             </span>
           </div>
 
@@ -94,8 +116,17 @@ export function DotPage({ info, work, onClose, onGoto, onAsk }: DotPageProps) {
 
           {dept ? (
             <>
-              <p className="dot-blurb">{DEPT_COPY[info.group] ?? ''}</p>
-              <div className="dot-sec">On Allya&rsquo;s mind here</div>
+              <p className="dot-blurb">{deptCopy[info.group] ?? ''}</p>
+              {deep ? (
+                <Link className="dot-deep" href={deep.href} onClick={onClose}>
+                  <span className="dd-copy">
+                    <span className="dd-label">{deep.label}</span>
+                    {deep.note ? <span className="dd-note">{deep.note}</span> : null}
+                  </span>
+                  <span className="dd-arrow">→</span>
+                </Link>
+              ) : null}
+              {info.children.length ? <div className="dot-sec">On Allya&rsquo;s mind here</div> : null}
               <div className="dot-thoughts">
                 {info.children.map((c) => (
                   <button type="button" className="dot-thought" key={c.id} onClick={() => onGoto(c.id)}>

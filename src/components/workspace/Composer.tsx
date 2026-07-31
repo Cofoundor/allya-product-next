@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Spring, clamp } from '@/lib/spring';
 import { PressButton } from '@/components/Pressable';
 import { ArrowIcon } from '@/components/icons';
-import { SUGGESTIONS } from '@/lib/workspace-data';
 
 /* The composer, and the popup that rises out of it on focus. Both springs
    are presentation only — the state flips immediately, so an interrupted
@@ -14,11 +13,16 @@ export function Composer({
   onSend,
   onEngage,
   onDisengage,
+  suggestions,
+  placeholder,
 }: {
   inputRef: RefObject<HTMLInputElement | null>;
   onSend: (text: string) => void;
   onEngage: () => void;
   onDisengage: () => void;
+  /** what this surface offers to take off your plate — both come from it */
+  suggestions: string[];
+  placeholder: string;
 }) {
   const [value, setValue] = useState('');
   const [mounted, setMounted] = useState(false); // suggest is in the DOM
@@ -98,10 +102,10 @@ export function Composer({
         hide();
       }}
     >
-      {mounted ? (
+      {mounted && suggestions.length ? (
         <div className="suggest" ref={suggestRef}>
           <div className="suggest-label">Things I can take off your plate</div>
-          {SUGGESTIONS.map((s) => (
+          {suggestions.map((s) => (
             <button
               key={s}
               type="button"
@@ -122,7 +126,7 @@ export function Composer({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Direct Allya — what's eating your week?"
+          placeholder={placeholder}
           autoComplete="off"
           value={value}
           onChange={(e) => setValue(e.target.value)}

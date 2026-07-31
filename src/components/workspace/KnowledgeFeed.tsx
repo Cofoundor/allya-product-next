@@ -1,61 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { paths, patchFact } from '@/lib/api/resources';
+import { useResource } from '@/lib/api/useResource';
+import type { Fact, FactList, Period } from '@/lib/api/types';
 
-const STORAGE_KEY = 'allya.knowledge';
+/* What Allya has noticed about this surface. Flagging and correcting a fact
+   go back to the server — the founder correcting the model is the point, so
+   it can't be a local-only gesture. */
 
-interface KnowledgeFact {
-  id: string;
-  text: string;
-  source: string;
-  when: string;
-  ts: number;
-  flagged: boolean;
-  mismatch?: boolean;
-  removed?: boolean;
-}
-
-function seedKnowledge(): KnowledgeFact[] {
-  const now = Date.now();
-  const day = 86400000;
-  return [
-    { id: 'b1', text: 'You respond to PR approvals faster than hiring decisions', source: 'observed', when: 'today', ts: now, flagged: false },
-    { id: 'b2', text: 'Newsletter open rate jumped 18% after switching to story format', source: 'observed', when: 'today', ts: now, flagged: false },
-    { id: 'b3', text: 'Your ops role JD got 6 applicants in 4 hours — above average', source: 'observed', when: 'today', ts: now, flagged: false },
-    { id: 'b4', text: "You haven't looked at the sales pipeline in 5 days", source: 'observed', when: 'today', ts: now, flagged: false, mismatch: true },
-    { id: 'b5', text: 'Morning decisions stick — your afternoon reversals are 3× higher', source: 'observed', when: 'today', ts: now, flagged: false },
-    { id: 'b6', text: 'CRM cleanup freed 41 duplicates — your lead count is now accurate', source: 'observed', when: 'today', ts: now, flagged: false },
-    { id: 'y1', text: 'You approved the investor update without a single edit', source: 'observed', when: 'yesterday', ts: now - day, flagged: false },
-    { id: 'y2', text: 'Press list v2 matched 8 more journalists vs v1', source: 'observed', when: 'yesterday', ts: now - day, flagged: false },
-    { id: 'y3', text: 'You asked about annual pricing — might be exploring it', source: 'observed', when: 'yesterday', ts: now - day, flagged: false, mismatch: true },
-    { id: 'y4', text: 'Three back-to-back calls drained your decision bandwidth', source: 'observed', when: 'yesterday', ts: now - day, flagged: false },
-    { id: 'y5', text: 'Your hiring brief was the most detailed document this week', source: 'observed', when: 'yesterday', ts: now - day, flagged: false },
-    { id: 'w1', text: 'You shipped 14 items — 9 agent, 5 expert-reviewed', source: 'observed', when: 'last-week', ts: now - day * 5, flagged: false },
-    { id: 'w2', text: 'Average approval time dropped from 6h to 2h', source: 'observed', when: 'last-week', ts: now - day * 5, flagged: false },
-    { id: 'w3', text: 'You ignored 2 outbound sequences — deprioritising cold outreach?', source: 'observed', when: 'last-week', ts: now - day * 4, flagged: false, mismatch: true },
-    { id: 'w4', text: 'Hired your first ops contractor via the screening agent', source: 'observed', when: 'last-week', ts: now - day * 6, flagged: false },
-    { id: 'w5', text: 'Revenue conversations shifted from "how much" to "when to raise"', source: 'observed', when: 'last-week', ts: now - day * 3, flagged: false },
-    { id: 'w6', text: 'Your edge positioning resonated — 3 prospects quoted it back', source: 'observed', when: 'last-week', ts: now - day * 4, flagged: false },
-  ];
-}
-
-function loadFacts(): KnowledgeFact[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return seedKnowledge();
-}
-
-function saveFacts(facts: KnowledgeFact[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(facts)); } catch { /* ignore */ }
-}
-
-const TABS = [
+const TABS: { key: Period; label: string }[] = [
   { key: 'today', label: 'Today' },
   { key: 'yesterday', label: 'Yesterday' },
   { key: 'last-week', label: 'Last week' },
-] as const;
+];
 
 const CalIcon = () => (
   <svg className="kf-cal-icon" viewBox="0 0 16 16" fill="none">
@@ -70,64 +28,49 @@ const FlagIcon = () => (
   </svg>
 );
 
-export function KnowledgeFeed({ company }: { company?: string }) {
-  const [facts, setFacts] = useState<KnowledgeFact[]>([]);
-  const [filter, setFilter] = useState('today');
+export function KnowledgeFeed({ surfaceId, title }: { surfaceId: string | null; title: string }) {
+  const [period, setPeriod] = useState<Period>('today');
   const [calOpen, setCalOpen] = useState(false);
   const [calDate, setCalDate] = useState<string | null>(null);
-  const mounted = useRef(false);
+  // server truth, plus whatever this session has changed since
+  const [edits, setEdits] = useState<Record<string, Fact>>({});
 
-  useEffect(() => {
-    if (mounted.current) return;
-    mounted.current = true;
-    const loaded = loadFacts();
-    setFacts(loaded);
-    saveFacts(loaded);
-  }, []);
+  const res = useResource<FactList>(
+    surfaceId ? paths.knowledge(surfaceId, calDate ? null : period, calDate) : null,
+  );
 
-  const persist = useCallback((next: KnowledgeFact[]) => {
-    setFacts(next);
-    saveFacts(next);
-  }, []);
+  const apply = useCallback((f: Fact) => setEdits((e) => ({ ...e, [f.id]: f })), []);
 
-  const visible = calDate
-    ? facts.filter(f => {
-        if (f.removed) return false;
-        const d = new Date(calDate);
-        const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-        return f.ts >= start && f.ts < start + 86400000;
-      })
-    : facts.filter(f => !f.removed && f.when === filter);
+  const toggleFlag = useCallback(
+    (f: Fact) => {
+      apply({ ...f, flagged: !f.flagged }); // optimistic — it's a toggle
+      patchFact(f.id, { flagged: !f.flagged }).then(apply).catch(() => apply(f));
+    },
+    [apply],
+  );
 
-  const toggleFlag = useCallback((id: string) => {
-    setFacts(prev => {
-      const next = prev.map(f => f.id === id ? { ...f, flagged: !f.flagged } : f);
-      saveFacts(next);
-      return next;
-    });
-  }, []);
+  const correct = useCallback(
+    (f: Fact, text: string) => patchFact(f.id, { text }).then(apply).catch(() => {}),
+    [apply],
+  );
 
-  const correct = useCallback((id: string, text: string) => {
-    setFacts(prev => {
-      const next = prev.map(f =>
-        f.id === id ? { ...f, text, flagged: false, mismatch: false, source: 'corrected' } : f,
-      );
-      saveFacts(next);
-      return next;
-    });
-  }, []);
+  const facts = (res.data?.facts ?? []).map((f) => edits[f.id] ?? f);
 
   return (
     <div className="c-sec learnt">
       <div className="kf-header">
-        <div className="group-label">What I know</div>
+        <div className="group-label">{title}</div>
         <div className="kf-tabs">
-          {TABS.map(t => (
+          {TABS.map((t) => (
             <button
               key={t.key}
               type="button"
-              className={`kf-tab${filter === t.key && !calDate ? ' active' : ''}`}
-              onClick={() => { setFilter(t.key); setCalDate(null); setCalOpen(false); }}
+              className={`kf-tab${period === t.key && !calDate ? ' active' : ''}`}
+              onClick={() => {
+                setPeriod(t.key);
+                setCalDate(null);
+                setCalOpen(false);
+              }}
             >
               {t.label}
             </button>
@@ -135,7 +78,8 @@ export function KnowledgeFeed({ company }: { company?: string }) {
           <button
             type="button"
             className={`kf-tab kf-tab-cal${calDate ? ' active' : ''}`}
-            onClick={() => setCalOpen(o => !o)}
+            aria-label="Pick a date"
+            onClick={() => setCalOpen((o) => !o)}
           >
             <CalIcon />
           </button>
@@ -148,7 +92,7 @@ export function KnowledgeFeed({ company }: { company?: string }) {
             type="date"
             className="kf-date-input"
             value={calDate ?? ''}
-            onChange={e => {
+            onChange={(e) => {
               setCalDate(e.target.value || null);
               setCalOpen(false);
             }}
@@ -157,10 +101,21 @@ export function KnowledgeFeed({ company }: { company?: string }) {
       )}
 
       <div className="kf-feed">
-        {visible.length ? (
-          visible.map(f => (
-            <FactRow key={f.id} fact={f} onFlag={toggleFlag} onCorrect={correct} />
-          ))
+        {res.loading ? (
+          <div className="sk-list">
+            {[0, 1, 2, 3].map((i) => (
+              <div className="sk-line" key={i} />
+            ))}
+          </div>
+        ) : res.error ? (
+          <p className="kf-empty">
+            Couldn&rsquo;t load this.{' '}
+            <button type="button" className="link-btn" onClick={res.reload}>
+              Try again
+            </button>
+          </p>
+        ) : facts.length ? (
+          facts.map((f) => <FactRow key={f.id} fact={f} onFlag={toggleFlag} onCorrect={correct} />)
         ) : (
           <p className="kf-empty">Nothing logged for this period yet.</p>
         )}
@@ -174,9 +129,9 @@ function FactRow({
   onFlag,
   onCorrect,
 }: {
-  fact: KnowledgeFact;
-  onFlag: (id: string) => void;
-  onCorrect: (id: string, text: string) => void;
+  fact: Fact;
+  onFlag: (f: Fact) => void;
+  onCorrect: (f: Fact, text: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -184,24 +139,19 @@ function FactRow({
     <>
       <div className={`kf-row${fact.mismatch ? ' kf-mismatch' : ''}${fact.flagged ? ' kf-flagged' : ''}`}>
         <span className="kf-text">{fact.text}</span>
-        <button type="button" className="kf-flag" aria-label="Flag this fact" onClick={() => onFlag(fact.id)}>
+        <button type="button" className="kf-flag" aria-label="Flag this fact" onClick={() => onFlag(fact)}>
           <FlagIcon />
         </button>
       </div>
       {fact.flagged && (
         <div className="kf-correct">
-          <input
-            ref={inputRef}
-            type="text"
-            className="kf-input"
-            placeholder="What's correct?"
-          />
+          <input ref={inputRef} type="text" className="kf-input" placeholder="What's correct?" />
           <button
             type="button"
             className="kf-save"
             onClick={() => {
               const val = inputRef.current?.value.trim();
-              if (val) onCorrect(fact.id, val);
+              if (val) onCorrect(fact, val);
             }}
           >
             Update
