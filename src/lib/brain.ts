@@ -476,10 +476,13 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     } else {
       // departments on an ellipse by appearance order; leaves fan around
       // their own parent, so a cluster arrives as one readable shape
-      const rx1 = W * 0.26;
-      const ry1 = H * 0.3;
+      /* The ring follows the box, but only so far: on a tall narrow column
+         a pure H-relative radius stretches two clusters into a vertical line
+         with a void between them. Cap the vertical reach against the width. */
+      const rx1 = W * 0.27;
+      const ry1 = Math.min(H * 0.3, W * 0.38);
       const rx2 = W * 0.19;
-      const ry2 = H * 0.2;
+      const ry2 = Math.min(H * 0.2, W * 0.25);
       depts.forEach((d, i) => {
         const a = -Math.PI / 2 + (i / Math.max(1, depts.length)) * TAU;
         d.hx = cx + Math.cos(a) * rx1;
@@ -495,6 +498,14 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
           l.hx = d.hx + Math.cos(a) * rx2 * reach;
           l.hy = d.hy + Math.sin(a) * ry2 * reach;
         });
+      });
+      /* A cluster at the top of the ring lands its leaves at y≈0 — on the
+         edge, halo clipped, label with nowhere to go. Keep everything inside
+         a margin big enough for the dot and the line under it. */
+      const pad = 30 * clamp(S, 0.8, 1.4);
+      nodes.forEach((n) => {
+        n.hx = clamp(n.hx, pad, Math.max(pad, W - pad));
+        n.hy = clamp(n.hy, pad, Math.max(pad, H - pad));
       });
     }
 

@@ -144,7 +144,7 @@ export default function ServiceOnboarding({ surfaceId }: { surfaceId: string }) 
 
   if (spec.error) {
     return (
-      <main className="ob-intro">
+      <main className="ob-screen ob-intro">
         <div className="ob-intro-inner">
           <h1 className="ob-title">This floor has no setup of its own.</h1>
           <p className="ob-lede">Either the server is unreachable, or there’s nothing here to fill in.</p>
@@ -166,7 +166,7 @@ export default function ServiceOnboarding({ surfaceId }: { surfaceId: string }) 
       </Link>
 
       {view === 'intro' && (
-        <main className="ob-intro">
+        <main className="ob-screen ob-intro">
           <div className="ob-intro-inner">
             <h1 className="ob-title">{data?.title ?? ' '}</h1>
             <p className="ob-lede">{data?.lede ?? ' '}</p>
@@ -180,7 +180,7 @@ export default function ServiceOnboarding({ surfaceId }: { surfaceId: string }) 
       {/* ask and synth share ONE canvas — synthesis is a layout change on the
           same graph, not a remount, so what you grew keeps its state */}
       {(view === 'ask' || view === 'synth') && data && (
-        <main className={`ob-ask${view === 'synth' ? ' is-synth' : ''}`}>
+        <main className={`ob-screen ob-ask${view === 'synth' ? ' is-synth' : ''}`}>
           <div className="ob-progress">
             <div className="ob-progress-bar" style={{ width: `${(step / data.questions.length) * 100}%` }} />
           </div>
@@ -236,7 +236,10 @@ export default function ServiceOnboarding({ surfaceId }: { surfaceId: string }) 
                 <div className="ob-ledger">
                   {ledger.map((l) => (
                     <div className="ob-ledger-item rise-in" key={l.id}>
-                      <TickIcon /> {l.text}
+                      <span className="lg-tick">
+                        <TickIcon size={8} />
+                      </span>
+                      {l.text}
                     </div>
                   ))}
                 </div>
@@ -260,7 +263,7 @@ export default function ServiceOnboarding({ surfaceId }: { surfaceId: string }) 
       )}
 
       {view === 'done' && data && (
-        <main className="ob-intro">
+        <main className="ob-screen ob-intro">
           <div className="ob-intro-inner">
             <h1 className="ob-title">{data.doneTitle}</h1>
             <p className="ob-lede">{data.doneLede}</p>

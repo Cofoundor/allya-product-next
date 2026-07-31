@@ -39,7 +39,7 @@
 /* ============================================================
    1 · Intro
    ============================================================ */
-.ob-intro { align-items: center; justify-content: center; padding: 40px 24px; }
+.ob-intro { align-items: center; justify-content: center; padding: 40px 24px; overflow-y: auto; }
 .ob-intro::before {
   content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
@@ -221,7 +221,8 @@
 }
 .ob-ledger-item .lg-tick {
   flex: none; width: 14px; height: 14px; border-radius: 50%;
-  background: var(--accent-dim); display: grid; place-items: center;
+  background: var(--accent-dim); color: var(--accent);
+  display: grid; place-items: center;
 }
 .ob-ledger-item .lg-tick svg { width: 8px; height: 8px; }
 .ob-ledger-item b { color: var(--fg); font-weight: 500; }

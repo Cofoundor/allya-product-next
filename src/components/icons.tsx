@@ -15,10 +15,19 @@ export function ArrowIcon({ size }: { size?: number }) {
   );
 }
 
-export function TickIcon() {
+/* An intrinsic size matters here: an <svg> with no width/height stretches to
+   fill whatever box it lands in, which is how this turned into a 100px tick
+   in the onboarding ledger. Callers can still size it up. */
+export function TickIcon({ size = 12 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 12 12" fill="none">
-      <path d="M2 6.2l2.6 2.6L10 3" stroke="#91d45f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 12 12" width={size} height={size} fill="none">
+      <path
+        d="M2 6.2l2.6 2.6L10 3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
