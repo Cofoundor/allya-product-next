@@ -195,7 +195,12 @@ export function Island({ surfaceId, work, summary, onOpenWork }: IslandProps) {
           >
             <span className="isl-dot" />
             <div className="kpi-track" ref={kpiWinRef}>
-              <div ref={trackRef}>
+              {/* kpi-slide must fill the track: it carries the transform, which
+                  makes it the containing block for the absolutely positioned
+                  cells. Left at its natural height (zero, since every child is
+                  absolute) the cells collapse onto the top edge and the pill
+                  clips their upper half. */}
+              <div className="kpi-slide" ref={trackRef}>
                 {kpiCells.map((k, i) => (
                   <div key={`${k.l}-${i}`} className="kpi-item" style={{ transform: `translateX(${i * 100}%)` }}>
                     <span>
@@ -249,9 +254,9 @@ export function Island({ surfaceId, work, summary, onOpenWork }: IslandProps) {
 
         {/* grows out of the pill when expanded; both panes scroll */}
         <div className="island-detail">
+          {/* the left half is the calendar and nothing else — the counters it
+              used to carry are already the collapsed pill's whole job */}
           <div className="idet-pane idet-left">
-            {/* the calendar is the left half's headline; the counters it can't
-                show sit under it rather than above */}
             <IslandCalendar
               surfaceId={surfaceId}
               onOpenWork={(id) => {
@@ -259,20 +264,6 @@ export function Island({ surfaceId, work, summary, onOpenWork }: IslandProps) {
                 onOpenWork(id);
               }}
             />
-            <div className="idet-group">This week</div>
-            <div className="idet-kpis">
-              {kpis.map((k) => (
-                <div className="idet-kpi" key={k.l}>
-                  <b>{k.n}</b>
-                  <span>{k.l}</span>
-                </div>
-              ))}
-            </div>
-            <div className="idet-note">
-              {shipped.length + (summary?.shippedEarlier ?? 0)} shipped · {running.length} in flight ·{' '}
-              {needsYou.length} waiting on you.
-            </div>
-            <div className="idet-note">Nothing leaves the building without your approval.</div>
           </div>
 
           <div className="idet-pane idet-right">
