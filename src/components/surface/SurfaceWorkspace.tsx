@@ -356,7 +356,12 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
 
         <main className={`workspace${tab === 'work' ? ' show-work' : ''}`}>
           <section className={`pane-chat${engaged ? ' engaged' : ''}`} aria-label="Conversation with Allya">
-            <Island work={work} summary={workRes.data?.summary ?? null} onOpenWork={openSheet} />
+            <Island
+              surfaceId={surfaceId}
+              work={work}
+              summary={workRes.data?.summary ?? null}
+              onOpenWork={openSheet}
+            />
 
             <SurfaceCanvas
               surfaceId={surfaceId}

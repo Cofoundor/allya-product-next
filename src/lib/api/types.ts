@@ -134,6 +134,79 @@ export interface OnboardingResult {
   learned: string[];
 }
 
+/* ---- the instrument (design mock) ---- */
+
+export interface InstrumentItem {
+  id: string;
+  label: string;
+  /** meaning depends on the type — see the Pydantic model */
+  at: number;
+  lane: number;
+  value: number;
+  state: string;
+  meta: string;
+}
+
+export interface Instrument {
+  surfaceId: string;
+  type: 'timeline' | 'funnel' | 'ladder' | 'radar' | 'mass';
+  title: string;
+  caption: string;
+  lanes: string[];
+  unit: string;
+  items: InstrumentItem[];
+}
+
+/* ---- a direction page (design mock) ---- */
+
+export interface Stat {
+  id: string;
+  value: string;
+  label: string;
+  delta: string | null;
+}
+
+export interface Progress {
+  label: string;
+  value: number;
+  of: number;
+  note: string;
+}
+
+export interface Send {
+  id: string;
+  subject: string;
+  when: string;
+  audience: string;
+  sent: number;
+  openRate: number;
+  replies: number;
+  state: 'sent' | 'scheduled' | 'draft';
+}
+
+export interface Sequence {
+  id: string;
+  name: string;
+  trigger: string;
+  state: 'live' | 'off' | 'draft';
+  audience: string;
+  stat: string;
+}
+
+export interface EmailPage {
+  id: string;
+  surfaceId: string;
+  label: string;
+  blurb: string;
+  stats: Stat[];
+  progress: Progress | null;
+  /** the one thing waiting on you, by work id */
+  awaiting: string | null;
+  sends: Send[];
+  sequences: Sequence[];
+  notes: string[];
+}
+
 /** everything the sign-in page renders, graph included */
 export interface Gate {
   headline: string;
@@ -249,6 +322,58 @@ export interface ScheduleEntry {
 
 export interface Schedule {
   entries: ScheduleEntry[];
+}
+
+/* ---- calendar ----
+   The schedule said in prose; the calendar is the same company on a grid.
+   An entry carrying a workId opens that item's approval sheet. */
+
+export type CalendarKind = 'meeting' | 'ship' | 'review' | 'deadline' | 'focus';
+
+export interface CalendarEvent {
+  id: string;
+  surfaceId: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** "11:00", or "All day" */
+  when: string;
+  /** minutes past midnight; -1 is all-day, and sorts first */
+  startMinute: number;
+  durationMin: number;
+  what: string;
+  kind: CalendarKind;
+  origin: Origin;
+  pill: string | null;
+  workId: string | null;
+}
+
+export interface CalendarDay {
+  date: string;
+  count: number;
+  needsYou: number;
+  kinds: CalendarKind[];
+}
+
+export interface CalendarMonth {
+  surfaceId: string;
+  /** YYYY-MM */
+  month: string;
+  label: string;
+  today: string;
+  /** weekday the 1st falls on, Monday = 0 */
+  firstWeekday: number;
+  daysInMonth: number;
+  /** only the days that hold something */
+  days: CalendarDay[];
+  selected: string;
+}
+
+export interface DayAgenda {
+  surfaceId: string;
+  date: string;
+  label: string;
+  events: CalendarEvent[];
+  note: string | null;
 }
 
 export interface WorkAction {

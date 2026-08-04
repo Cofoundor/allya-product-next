@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Spring } from '@/lib/spring';
 import { useReducedMotion, useTimers } from '@/lib/hooks';
+import { IslandCalendar } from './IslandCalendar';
 import type { WorkItem, WorkSummary } from '@/lib/api/types';
 
 /* ============================================================
@@ -26,6 +27,8 @@ function shortTitle(w: WorkItem) {
 }
 
 interface IslandProps {
+  /** whose calendar the left half shows — the workspace sees every floor's */
+  surfaceId: string;
   work: WorkItem[];
   /** the two counters the work list can't derive on its own */
   summary: WorkSummary | null;
@@ -33,7 +36,7 @@ interface IslandProps {
   onOpenWork: (id: string) => void;
 }
 
-export function Island({ work, summary, onOpenWork }: IslandProps) {
+export function Island({ surfaceId, work, summary, onOpenWork }: IslandProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const kpiWinRef = useRef<HTMLDivElement>(null);
   const todoRef = useRef<HTMLDivElement>(null);
@@ -247,13 +250,24 @@ export function Island({ work, summary, onOpenWork }: IslandProps) {
         {/* grows out of the pill when expanded; both panes scroll */}
         <div className="island-detail">
           <div className="idet-pane idet-left">
-            {kpis.map((k) => (
-              <div className="idet-kpi" key={k.l}>
-                <b>{k.n}</b>
-                <span>{k.l}</span>
-              </div>
-            ))}
+            {/* the calendar is the left half's headline; the counters it can't
+                show sit under it rather than above */}
+            <IslandCalendar
+              surfaceId={surfaceId}
+              onOpenWork={(id) => {
+                setOpen(false);
+                onOpenWork(id);
+              }}
+            />
             <div className="idet-group">This week</div>
+            <div className="idet-kpis">
+              {kpis.map((k) => (
+                <div className="idet-kpi" key={k.l}>
+                  <b>{k.n}</b>
+                  <span>{k.l}</span>
+                </div>
+              ))}
+            </div>
             <div className="idet-note">
               {shipped.length + (summary?.shippedEarlier ?? 0)} shipped · {running.length} in flight ·{' '}
               {needsYou.length} waiting on you.
