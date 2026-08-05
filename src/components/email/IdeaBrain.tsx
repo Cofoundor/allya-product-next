@@ -7,10 +7,9 @@ import { DotPage } from '@/components/workspace/DotPage';
 import { useTimers } from '@/lib/hooks';
 import { prefersReducedMotion } from '@/lib/spring';
 import { markLaunch, takeLaunch } from '@/components/surface/launch';
-import { branchTints, type BrainHandle, type NodeSpec, type OpenNodeInfo } from '@/lib/brain';
-import type { Idea } from '@/lib/email-campaign';
-import { channelAccent, type Channel } from '@/lib/channels';
-import type { WorkItem } from '@/lib/api/types';
+import { GROUPS, branchTints, type BrainHandle, type NodeSpec, type OpenNodeInfo } from '@/lib/brain';
+import { branchTints as tintsOf } from '@/lib/brain';
+import type { ChannelPage, Idea, WorkItem } from '@/lib/api/types';
 
 /* ============================================================
    The brain, one direction deep.
@@ -26,14 +25,17 @@ import type { WorkItem } from '@/lib/api/types';
    ============================================================ */
 
 export function IdeaBrain({
-  channel,
+  channelId,
+  page,
   ideas,
   work,
   loading,
   onWrite,
   onReady,
 }: {
-  channel: Channel;
+  channelId: string;
+  /** the channel's own copy and hue — none of it lives in the client */
+  page: ChannelPage | null;
   ideas: Idea[];
   work: WorkItem[];
   loading: boolean;
@@ -48,9 +50,11 @@ export function IdeaBrain({
   const flying = useRef(false);
   const { after, clearAll } = useTimers();
 
-  // the direction's own hue — its tint on the marketing floor, the one it
-  // wears everywhere else
-  const accent = useMemo(() => channelAccent(channel), [channel]);
+  // the direction's own hue: the floor's branch tint the channel names
+  const accent = useMemo(
+    () => tintsOf(GROUPS.marketing)[page?.ui.tint ?? 'b4'] ?? GROUPS.marketing,
+    [page?.ui.tint],
+  );
   const tints = useMemo(() => branchTints(accent), [accent]);
 
   /* the cord below goes somewhere: tapping marketing dives out of this
@@ -58,13 +62,14 @@ export function IdeaBrain({
   const leave = useCallback(() => {
     if (flying.current) return;
     flying.current = true;
+    const back = page?.ui.backHref ?? '/marketing';
     const go = () => {
       markLaunch('marketing');
-      router.push('/marketing');
+      router.push(back);
     };
     if (brainRef.current) brainRef.current.launchInto('marketing', go);
     else go();
-  }, [router]);
+  }, [page?.ui.backHref, router]);
 
   /* marketing (tier 0) — email (tier 1, the anchor) — a thought per idea
      (tier 2) — what each one is made of (tier 3). Everything but the cord
@@ -72,7 +77,7 @@ export function IdeaBrain({
   const nodes = useMemo<NodeSpec[]>(() => {
     const out: NodeSpec[] = [
       { id: 'marketing', label: 'Marketing', tier: 0, group: 'marketing', surface: 'marketing' },
-      { id: channel.id, label: channel.label, tier: 1, group: channel.id, parent: 'marketing' },
+      { id: channelId, label: page?.label ?? '…', tier: 1, group: channelId, parent: 'marketing' },
     ];
     ideas.forEach((idea, i) => {
       const tint = `b${(i % 8) + 1}`;
@@ -81,9 +86,9 @@ export function IdeaBrain({
         label: idea.label,
         tier: 2,
         group: tint,
-        parent: channel.id,
+        parent: channelId,
         hidden: true,
-        work: idea.work,
+        work: idea.work ?? undefined,
         // an idea nobody has started is drawn faintly — that IS its status
         provisional: idea.state === 'idea',
       });
@@ -100,7 +105,7 @@ export function IdeaBrain({
       );
     });
     return out;
-  }, [channel, ideas]);
+  }, [channelId, ideas, page?.label]);
 
   /* a tapped dot reports its parent by LABEL, not id (that's what the sheet
      shows), so a thought's details have to be findable both ways */
@@ -124,8 +129,8 @@ export function IdeaBrain({
       }
 
       h.setThoughts(false);
-      const flew = takeLaunch(channel.id);
-      if (flew) h.arriveInto(channel.id);
+      const flew = takeLaunch(channelId);
+      if (flew) h.arriveInto(channelId);
       else h.frame(null, 1, true);
 
       const start = flew ? 220 : 420;
@@ -144,7 +149,7 @@ export function IdeaBrain({
       );
       after(leafAt + leaves.length * 32 + 400, () => h.setThoughts(true));
     },
-    [after, channel.id, clearAll, nodes],
+    [after, channelId, clearAll, nodes],
   );
 
   const closeDot = useCallback(() => {
@@ -168,7 +173,7 @@ export function IdeaBrain({
         options={{
           nodes,
           layout: 'spray',
-          anchorId: channel.id,
+          anchorId: channelId,
           revealed: true,
           accent,
           groupColors: tints,
@@ -183,11 +188,11 @@ export function IdeaBrain({
       >
         <div className="brain-head">
           <span className="brain-title">
-            <span className="brain-live" /> The brain · {channel.label.toLowerCase()}
+            <span className="brain-live" /> {page?.ui.brainTitle ?? 'The brain'}
           </span>
           <span className="brain-side">
             <span className="brain-sub">
-              {loading ? 'reading the channel…' : `${ideas.length} thoughts — touch one`}
+              {loading ? 'reading the channel…' : `${ideas.length} thoughts — ${page?.ui.brainSubtitle ?? 'touch one'}`}
             </span>
           </span>
         </div>
@@ -203,10 +208,10 @@ export function IdeaBrain({
         // the button is the door into the conversation, whatever was tapped
         ctaFor={(n) => (ideaOf(n) ? 'Write this campaign →' : 'Talk to Allya about this →')}
         deepLink={(n) =>
-          n.id === channel.id
+          n.id === channelId
             ? {
-                href: '/marketing',
-                label: 'Back to marketing',
+                href: page?.ui.backHref ?? '/marketing',
+                label: page?.ui.backLabel ?? 'Back',
                 note: 'this is one of its directions — the cord below is the same brain',
               }
             : null

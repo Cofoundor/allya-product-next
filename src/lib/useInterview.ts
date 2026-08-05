@@ -1,16 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { QUESTIONS, type Answers, type Question } from './email-campaign';
-import type { EmailPage } from './api/types';
+import { ackAnswer } from './api/resources';
+import type { Answers, Question } from './api/types';
 
 /* ============================================================
    The interview, headless.
 
-   Five questions, asked one at a time. This is a hook rather than a
-   component because the email page wears the same shell as a floor: the
-   transcript and the composer are the floor's, and only the script is
-   ours.
+   The questions, their chips and what Allya says back all come from the
+   channel — this only sequences them. A hook rather than a component
+   because the page wears the floor's shell: the transcript and composer
+   are the floor's, and only the script is ours.
 
    Every beat takes the plan, the index and the answers so far as
    arguments rather than reading them back out of state — a chip clicked
@@ -32,19 +32,19 @@ export interface InterviewChip {
 }
 
 export function useInterview({
-  page,
+  channelId,
+  questions,
   onProgress,
   onDone,
 }: {
-  page: EmailPage | null;
+  channelId: string;
+  /** null until the channel has answered — the composer waits */
+  questions: Question[] | null;
   onProgress: (a: Answers) => void;
   onDone: (a: Answers) => void;
 }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [typing, setTyping] = useState(false);
-  /* the question whose chips are showing, not the chips themselves: the
-     options quote live numbers, and the first is asked before the API
-     has answered */
   const [asking, setAsking] = useState<Question | null>(null);
   const [finished, setFinished] = useState(false);
   const [started, setStarted] = useState(false);
@@ -77,7 +77,7 @@ export function useInterview({
     (plan: Question[], i: number, acc: Answers) => {
       if (i >= plan.length) {
         pending.current = null;
-        think(1100, () => {
+        think(900, () => {
           setFinished(true);
           onDone(acc);
         });
@@ -106,17 +106,25 @@ export function useInterview({
       const acc = { ...cur.acc, [q.key]: t };
       say('you', t);
       onProgress(acc);
-      think(450, () => {
-        say('allya', q.ack(t));
-        askQuestion(cur.plan, cur.i + 1, acc);
-      });
+
+      // what she says back is hers, so it's asked for rather than invented
+      setTyping(true);
+      ackAnswer(channelId, q.key, t)
+        .then((r) => r.text)
+        .catch(() => '')
+        .then((ack) => {
+          setTyping(false);
+          if (ack) say('allya', ack);
+          askQuestion(cur.plan, cur.i + 1, acc);
+        });
     },
-    [askQuestion, onProgress, say, think],
+    [askQuestion, channelId, onProgress, say],
   );
 
   /** (re)start — from scratch, or already knowing what a thought told us */
   const start = useCallback(
     (from?: { label?: string; acc?: Answers }) => {
+      if (!questions) return;
       clearTimers();
       setMessages([]);
       setAsking(null);
@@ -126,7 +134,7 @@ export function useInterview({
       nextId.current = 0;
 
       const acc: Answers = { ...(from?.acc ?? {}) };
-      const plan = QUESTIONS.filter((q) => !acc[q.key]);
+      const plan = questions.filter((q) => !acc[q.key]);
       onProgress(acc);
 
       if (from?.label) {
@@ -135,17 +143,17 @@ export function useInterview({
       } else {
         say(
           'allya',
-          'Let’s write one. Five questions — the answers are the campaign, so short and true beats long and polished.',
+          `Let’s write one. ${questions.length} questions — the answers are the campaign, so short and true beats long and polished.`,
         );
       }
       askQuestion(plan, 0, acc);
     },
-    [askQuestion, clearTimers, onProgress, say],
+    [askQuestion, clearTimers, onProgress, questions, say],
   );
 
   const chips: InterviewChip[] = asking
-    ? asking.options(page).map((o) => ({ label: o.trim(), kind: asking.chipsAre, text: o }))
+    ? asking.options.map((o) => ({ label: o.trim(), kind: asking.chipsAre, text: o }))
     : [];
 
-  return { messages, typing, chips, asking, finished, started, submit, start };
+  return { messages, typing, chips, asking, finished, started, submit, start, ready: !!questions };
 }

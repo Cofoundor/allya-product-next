@@ -173,6 +173,7 @@ export interface Progress {
   note: string;
 }
 
+/** a campaign in a list: enough to rank it, not enough to read it */
 export interface Send {
   id: string;
   subject: string;
@@ -182,11 +183,68 @@ export interface Send {
   openRate: number;
   replies: number;
   state: 'sent' | 'scheduled' | 'draft';
-  /** what it actually said — a paragraph per entry */
-  body: string[];
-  ps: string | null;
   /** what it did, in its own words */
   outcome: string | null;
+}
+
+/** one campaign, opened: the same row plus what it actually said */
+export interface CampaignDetail extends Send {
+  body: string[];
+  ps: string | null;
+}
+
+/** everything the page needs to dress itself — no channel copy ships in
+    the bundle, so a new channel is a backend change */
+export interface ChannelUi {
+  tint: string;
+  placeholder: string;
+  suggestions: string[];
+  knowTitle: string;
+  brainTitle: string;
+  brainSubtitle: string;
+  backLabel: string;
+  backHref: string;
+}
+
+export type AnswerKey = 'audience' | 'point' | 'proof' | 'ask' | 'when';
+export type Answers = Partial<Record<AnswerKey, string>>;
+
+export interface Question {
+  key: AnswerKey;
+  tag: string;
+  ask: string;
+  /** 'answer' → the chip is the answer; 'starter' → it only opens the sentence */
+  chipsAre: 'answer' | 'starter';
+  options: string[];
+}
+
+/** a campaign written out of five answers, not yet created. (The review
+    sheet's `Draft` is a different thing — an expert's revision.) */
+export interface DraftCampaign {
+  subjects: string[];
+  preview: string;
+  body: string[];
+  ps: string | null;
+  audience: string;
+  when: string;
+  rules: string[];
+  next: string[];
+}
+
+export interface IdeaMove {
+  id: string;
+  label: string;
+}
+
+/** a thought on the channel's brain */
+export interface Idea {
+  id: string;
+  label: string;
+  note: string;
+  state: 'live' | 'draft' | 'idea';
+  moves: IdeaMove[];
+  seed: string;
+  work: string | null;
 }
 
 export interface Score {
@@ -238,11 +296,11 @@ export interface EmailPage {
   progress: Progress | null;
   /** the one thing waiting on you, by work id */
   awaiting: string | null;
-  sends: Send[];
   sequences: Sequence[];
   notes: string[];
   health: Health | null;
-  nouns: Nouns | null;
+  nouns: Nouns;
+  ui: ChannelUi;
 }
 
 /** the name the page goes by now that it serves more than email */

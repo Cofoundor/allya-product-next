@@ -1,6 +1,6 @@
 'use client';
 
-import type { EmailPage, Nouns, Send, WorkItem } from '@/lib/api/types';
+import type { ChannelPage, Nouns, Send, WorkItem } from '@/lib/api/types';
 
 /* ============================================================
    The right-hand pane: what's running, and what already ran.
@@ -18,6 +18,7 @@ const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 export function CampaignPane({
   page,
+  campaigns,
   work,
   nouns,
   loading,
@@ -26,17 +27,18 @@ export function CampaignPane({
   onOpen,
   onRetry,
 }: {
-  page: EmailPage | null;
+  page: ChannelPage | null;
+  campaigns: Send[];
   work: WorkItem[];
-  nouns: Nouns;
+  nouns: Nouns | null;
   loading: boolean;
   error: boolean;
   onCreate: () => void;
   onOpen: (s: Send) => void;
   onRetry: () => void;
 }) {
-  const active = (page?.sends ?? []).filter((s) => s.state !== 'sent');
-  const past = (page?.sends ?? []).filter((s) => s.state === 'sent');
+  const active = campaigns.filter((s) => s.state !== 'sent');
+  const past = campaigns.filter((s) => s.state === 'sent');
   const best = Math.max(0.01, ...past.map((s) => s.openRate));
   const needs = work.filter((w) => w.status === 'needs-you');
 
@@ -102,7 +104,7 @@ export function CampaignPane({
           ) : null}
 
           {!loading && !error && !active.length && !page?.sequences.length ? (
-            <p className="es-empty">Nothing running. The first {nouns.one} is one button away.</p>
+            <p className="es-empty">Nothing running. The first {nouns?.one ?? 'campaign'} is one button away.</p>
           ) : null}
         </div>
       </section>
@@ -110,7 +112,7 @@ export function CampaignPane({
       <section className="es-section">
         <div className="es-section-head">
           <h3>Past campaigns</h3>
-          <span>{nouns.metric}, against your best</span>
+          <span>{nouns?.metric ?? 'opened'}, against your best</span>
         </div>
         <div className="es-section-scroll">
           {past.map((s) => (

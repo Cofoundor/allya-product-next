@@ -2,7 +2,18 @@
    be cached, prefetched and handed to useResource) and functions for writes. */
 
 import { get, invalidate, patch, post, prefetch } from './client';
-import type { Fact, OnboardingResult, Period, Reply, Review, WorkAction } from './types';
+import type {
+  AnswerKey,
+  Answers,
+  DraftCampaign,
+  Fact,
+  OnboardingResult,
+  Period,
+  Reply,
+  Review,
+  Send,
+  WorkAction,
+} from './types';
 
 export const paths = {
   surfaces: () => '/surfaces',
@@ -22,6 +33,11 @@ export const paths = {
   onboarding: (sid: string) => `/surfaces/${sid}/onboarding`,
   instrument: (sid: string) => `/surfaces/${sid}/instrument`,
   direction: (did: string) => `/directions/${did}`,
+  campaigns: (did: string) => `/directions/${did}/campaigns`,
+  campaign: (did: string, cid: string) => `/directions/${did}/campaigns/${cid}`,
+  questions: (did: string) => `/directions/${did}/questions`,
+  ideas: (did: string) => `/directions/${did}/ideas`,
+  directionWork: (did: string) => `/directions/${did}/work`,
 };
 
 /** finish a floor's setup — the graph and the lock both change behind this */
@@ -74,6 +90,24 @@ async function act(wid: string, verb: 'approve' | 'undo') {
 export const approveWork = (wid: string) => act(wid, 'approve');
 export const undoWork = (wid: string) => act(wid, 'undo');
 export const requestRevision = (wid: string) => post<Reply>(`/work/${wid}/revision`);
+
+/* ---- a campaign: written, then queued ---- */
+
+/** compose from the five answers. Nothing is stored — this is the preview. */
+export const draftCampaign = (did: string, answers: Answers) =>
+  post<DraftCampaign>(`/directions/${did}/campaigns/draft`, answers);
+
+/** queue it for review. 201, and it joins the list the pane reads. */
+export async function createCampaign(did: string, answers: Answers, subject?: string) {
+  const q = subject ? `?subject=${encodeURIComponent(subject)}` : '';
+  const made = await post<Send>(`/directions/${did}/campaigns${q}`, answers);
+  invalidate(paths.campaigns(did)); // the pane must show what was just made
+  return made;
+}
+
+/** what Allya says back when an answer lands — her words, not ours */
+export const ackAnswer = (did: string, key: AnswerKey, text: string) =>
+  post<{ text: string }>(`/directions/${did}/questions/${key}/ack`, { text });
 
 export async function patchFact(fid: string, body: { flagged?: boolean; text?: string }) {
   const fact = await patch<Fact>(`/knowledge/${fid}`, body);

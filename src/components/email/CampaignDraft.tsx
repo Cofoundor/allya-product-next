@@ -1,51 +1,55 @@
 'use client';
 
 import { useState } from 'react';
-import type { Campaign } from '@/lib/email-campaign';
+import type { DraftCampaign, Nouns } from '@/lib/api/types';
 
 /* ============================================================
    The campaign, ready.
 
-   Written out of the five answers — the founder's own sentences carry
-   every claim, so the only thing on offer here is order, framing and
-   which line goes in the subject. Three subjects, because picking one is
-   faster than asking for one.
+   Written by the channel out of the five answers — the founder's own
+   sentences carry every claim, so the only thing on offer here is which
+   line goes in the subject. Queueing it is a real POST: the campaign
+   comes back with an id and joins the pane.
    ============================================================ */
 
-export function CampaignDraft({ campaign, onEdit }: { campaign: Campaign | null; onEdit: () => void }) {
-  /* A fresh campaign is a fresh decision — which subject is picked and
-     whether it's been queued belong to THIS draft. The parent keys this
-     component on the campaign, so a new one remounts with both reset
-     rather than an effect chasing the prop. */
+export function CampaignDraft({
+  draft,
+  nouns,
+  onQueue,
+  onEdit,
+}: {
+  draft: DraftCampaign;
+  nouns: Nouns | null;
+  /** returns once the channel has created it */
+  onQueue: (subject: string) => Promise<unknown>;
+  onEdit: () => void;
+}) {
+  /* which subject is picked and whether it's been queued belong to THIS
+     draft — the parent keys this component on it, so a new one arrives
+     with both reset rather than an effect chasing the prop */
   const [pick, setPick] = useState(0);
-  const [queued, setQueued] = useState(false);
+  const [state, setState] = useState<'idle' | 'saving' | 'queued' | 'failed'>('idle');
 
-  if (!campaign) {
-    return (
-      <section className="c-sec es-draft is-empty">
-        <div className="es-box-head">
-          <h2>The campaign</h2>
-          <span>after the questions</span>
-        </div>
-        <p className="es-empty">
-          Answer the five and it lands here — subject lines, the body, the P.S., and who it goes to.
-        </p>
-      </section>
-    );
-  }
+  const subject = draft.subjects[pick] ?? draft.subjects[0] ?? '';
+  const word = nouns?.one ?? 'campaign';
 
-  const subject = campaign.subjects[pick] ?? campaign.subjects[0] ?? '';
+  const queue = () => {
+    setState('saving');
+    onQueue(subject)
+      .then(() => setState('queued'))
+      .catch(() => setState('failed'));
+  };
 
   return (
     <section className="c-sec accent es-draft">
       <div className="es-box-head">
-        <h2>The campaign</h2>
-        <span>ready — nothing sends until you approve it</span>
+        <h2>The {word}</h2>
+        <span>ready — nothing goes out until you approve it</span>
       </div>
 
       <div className="es-subjects">
         <div className="es-label">Subject — pick one</div>
-        {campaign.subjects.map((s, i) => (
+        {draft.subjects.map((s, i) => (
           <button
             key={s}
             type="button"
@@ -62,25 +66,25 @@ export function CampaignDraft({ campaign, onEdit }: { campaign: Campaign | null;
       <div className="es-mail">
         <div className="es-mail-head">
           <b>{subject}</b>
-          <span>{campaign.preview}</span>
+          <span>{draft.preview}</span>
         </div>
         <div className="es-mail-body">
-          {campaign.body.map((p, i) => (
+          {draft.body.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
-          {campaign.ps ? <p className="es-ps">{campaign.ps}</p> : null}
+          {draft.ps ? <p className="es-ps">{draft.ps}</p> : null}
         </div>
         <div className="es-mail-foot">
-          <span>To · {campaign.audience}</span>
-          <span>Goes · {campaign.when}</span>
+          <span>To · {draft.audience}</span>
+          <span>Goes · {draft.when}</span>
         </div>
       </div>
 
-      {campaign.rules.length ? (
+      {draft.rules.length ? (
         <div className="es-rules">
-          <div className="es-label">Applied without asking — from your own sends</div>
+          <div className="es-label">Applied without asking — from your own {nouns?.many ?? 'campaigns'}</div>
           <ul>
-            {campaign.rules.map((r) => (
+            {draft.rules.map((r) => (
               <li key={r}>{r}</li>
             ))}
           </ul>
@@ -90,27 +94,27 @@ export function CampaignDraft({ campaign, onEdit }: { campaign: Campaign | null;
       <div className="es-next">
         <div className="es-label">What happens if you say yes</div>
         <ol>
-          {campaign.next.map((n) => (
+          {draft.next.map((n) => (
             <li key={n}>{n}</li>
           ))}
         </ol>
       </div>
 
       <div className="es-draft-act">
-        {queued ? (
-          <span className="es-queued">Queued for review — it waits for you.</span>
+        {state === 'queued' ? (
+          <span className="es-queued">Queued for review — it’s in the pane, waiting for you.</span>
         ) : (
-          <button type="button" className="cta" onClick={() => setQueued(true)}>
-            Queue it for review →
+          <button type="button" className="cta" onClick={queue} disabled={state === 'saving'}>
+            {state === 'saving' ? 'Queueing…' : 'Queue it for review →'}
           </button>
         )}
         <button type="button" className="es-restart" onClick={onEdit}>
           Change an answer
         </button>
       </div>
-      <p className="es-fineprint">
-        Queueing is local to this page for now — the campaign endpoint doesn’t exist in the API yet.
-      </p>
+      {state === 'failed' ? (
+        <p className="es-fineprint">Couldn’t queue it — the server didn’t take it. Try again.</p>
+      ) : null}
     </section>
   );
 }

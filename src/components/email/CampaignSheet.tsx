@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react';
 import { useReducedMotion } from '@/lib/hooks';
-import type { Nouns, Send } from '@/lib/api/types';
+import { paths } from '@/lib/api/resources';
+import { useResource } from '@/lib/api/useResource';
+import type { CampaignDetail, Nouns } from '@/lib/api/types';
 
 /* ============================================================
    One campaign, opened.
@@ -15,27 +17,33 @@ import type { Nouns, Send } from '@/lib/api/types';
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 export function CampaignSheet({
-  send,
+  channelId,
+  campaignId,
   nouns,
   onClose,
 }: {
-  send: Send | null;
-  nouns: Nouns;
+  channelId: string;
+  /** which campaign to open; null closes the sheet */
+  campaignId: string | null;
+  nouns: Nouns | null;
   onClose: () => void;
 }) {
   const reduced = useReducedMotion();
+  // the row carries enough to rank it; the body only comes with the detail
+  const res = useResource<CampaignDetail>(campaignId ? paths.campaign(channelId, campaignId) : null);
+  const send = res.data;
 
   useEffect(() => {
-    if (!send) return;
+    if (!campaignId) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [send, onClose]);
+  }, [campaignId, onClose]);
 
-  if (!send) return null;
-  const out = send.state === 'sent';
+  if (!campaignId) return null;
+  const out = send?.state === 'sent';
 
   return (
     <div className="dot-layer is-open es-camp-layer">
@@ -44,7 +52,7 @@ export function CampaignSheet({
         className="dot-sheet es-camp"
         role="dialog"
         aria-modal="true"
-        aria-label={send.subject}
+        aria-label={send?.subject ?? 'Campaign'}
         style={reduced ? undefined : undefined}
       >
         <div className="dot-scroll">
@@ -53,10 +61,27 @@ export function CampaignSheet({
               ← Campaigns
             </button>
             <span className="dot-crumb">
-              {send.state} · {nouns.one}
+              {send?.state ?? '…'} · {nouns?.one ?? 'campaign'}
             </span>
           </div>
 
+          {res.error ? (
+            <>
+              <h1 className="dot-title">Couldn’t open it</h1>
+              <p className="dot-blurb">
+                {res.error.offline ? 'The server is unreachable.' : res.error.message}
+              </p>
+              <button type="button" className="cta" onClick={res.reload}>
+                Try again
+              </button>
+            </>
+          ) : !send ? (
+            <>
+              <h1 className="dot-title sk-text">Opening…</h1>
+              <p className="dot-blurb sk-text">reading the campaign</p>
+            </>
+          ) : (
+            <>
           <h1 className="dot-title">{send.subject}</h1>
           <p className="dot-blurb">
             {send.when} · to {send.audience.toLowerCase()}
@@ -66,11 +91,11 @@ export function CampaignSheet({
             <div className="es-camp-stats">
               <div className="es-stat">
                 <b>{send.sent}</b>
-                <span className="l">{nouns.one === 'broadcast' ? 'delivered' : 'sent'}</span>
+                <span className="l">{nouns?.one === 'broadcast' ? 'delivered' : 'sent'}</span>
               </div>
               <div className="es-stat">
                 <b>{pct(send.openRate)}</b>
-                <span className="l">{nouns.metric}</span>
+                <span className="l">{nouns?.metric ?? 'opened'}</span>
               </div>
               <div className="es-stat">
                 <b>{send.replies}</b>
@@ -100,6 +125,8 @@ export function CampaignSheet({
               <p className="es-camp-outcome">{send.outcome}</p>
             </>
           ) : null}
+            </>
+          )}
         </div>
       </section>
     </div>

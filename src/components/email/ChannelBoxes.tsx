@@ -34,7 +34,7 @@ export function KnowBox({ title, notes }: { title: string; notes: string[] }) {
         <span>{notes.length ? `${notes.length} things` : 'nothing yet'}</span>
       </div>
       {notes.length ? (
-        <ul className="es-know-list">
+        <ul className="es-know-list es-know-scroll">
           {notes.map((n) => (
             <li key={n}>
               <span className="es-know-dot" />
@@ -58,45 +58,49 @@ export function HealthBox({ health }: { health: Health | null }) {
         <h2>{health.title}</h2>
         <span>{health.scores.length} readings</span>
       </div>
-      <p className="es-health-blurb">{health.blurb}</p>
+      {/* the readings outlast the box: it scrolls rather than pushing the
+          page down every time a channel has more to say about itself */}
+      <div className="es-health-scroll">
+        <p className="es-health-blurb">{health.blurb}</p>
 
-      <div className="es-scores">
-        {health.scores.map((s) => (
-          <div className={`es-score s-${s.state}`} key={s.id}>
-            <span className="es-score-top">
-              <span className="es-score-l">{s.label}</span>
-              <span className="es-score-v">{s.value}</span>
-            </span>
-            <span className="es-score-n">{s.note}</span>
-          </div>
-        ))}
-      </div>
-
-      {w ? (
-        <div className="es-warm">
-          <div className="es-warm-top">
-            <span>{w.label}</span>
-            <span>
-              {w.value} / {w.of}
-            </span>
-          </div>
-          <div className="es-bar">
-            <span style={{ width: `${Math.min(100, (w.value / Math.max(1, w.of)) * 100)}%` }} />
-          </div>
-          <div className="es-row-m">{w.note}</div>
-        </div>
-      ) : null}
-
-      {health.updates.length ? (
-        <ul className="es-know-list es-updates">
-          {health.updates.map((u) => (
-            <li key={u}>
-              <span className="es-know-dot" />
-              {u}
-            </li>
+        <div className="es-scores">
+          {health.scores.map((s) => (
+            <div className={`es-score s-${s.state}`} key={s.id}>
+              <span className="es-score-top">
+                <span className="es-score-l">{s.label}</span>
+                <span className="es-score-v">{s.value}</span>
+              </span>
+              <span className="es-score-n">{s.note}</span>
+            </div>
           ))}
-        </ul>
-      ) : null}
+        </div>
+
+        {w ? (
+          <div className="es-warm">
+            <div className="es-warm-top">
+              <span>{w.label}</span>
+              <span>
+                {w.value} / {w.of}
+              </span>
+            </div>
+            <div className="es-bar">
+              <span style={{ width: `${Math.min(100, (w.value / Math.max(1, w.of)) * 100)}%` }} />
+            </div>
+            <div className="es-row-m">{w.note}</div>
+          </div>
+        ) : null}
+
+        {health.updates.length ? (
+          <ul className="es-know-list es-updates">
+            {health.updates.map((u) => (
+              <li key={u}>
+                <span className="es-know-dot" />
+                {u}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
     </section>
   );
 }
