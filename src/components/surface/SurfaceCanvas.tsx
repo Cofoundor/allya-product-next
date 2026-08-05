@@ -297,15 +297,25 @@ export function SurfaceCanvas({
         work={work}
         deptCopy={surface?.nodeCopy ?? {}}
         branchWord={spray ? 'direction' : undefined}
-        deepLink={(n) =>
-          spray && n.id === brain?.anchorId && surface?.brain.backHref
-            ? {
-                href: surface.brain.backHref,
-                label: 'Back to the whole company',
-                note: 'this floor is one branch of it — the cord below is the same brain',
-              }
-            : null
-        }
+        deepLink={(n) => {
+          if (spray && n.id === brain?.anchorId && surface?.brain.backHref) {
+            return {
+              href: surface.brain.backHref,
+              label: 'Back to the whole company',
+              note: 'this floor is one branch of it — the cord below is the same brain',
+            };
+          }
+          // one direction has a page of its own: email opens as a room you
+          // can work in, not a panel you read
+          if (n.id === 'email' && surfaceId === 'marketing') {
+            return {
+              href: '/marketing/email',
+              label: 'Open email marketing →',
+              note: 'its own brain, and a campaign written from five answers',
+            };
+          }
+          return null;
+        }}
         onClose={closeDot}
         onGoto={(id) => brainRef.current?.openNode(id)}
         onAsk={(label) => {

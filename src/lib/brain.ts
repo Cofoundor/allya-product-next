@@ -402,7 +402,11 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   function layout() {
     const cx = W / 2;
     const cy = H / 2;
-    const hub = nodeById.co;
+    /* "co" is the company's id and the hub in every graph the API sends,
+       but the engine's real rule is tier 0 — a graph cropped to one
+       direction has its own hub and would otherwise never be placed, and
+       a node that is never placed sits in the corner at (0,0). */
+    const hub = nodeById.co ?? nodes.find((n) => n.tier === 0);
     if (hub) {
       hub.hx = cx;
       hub.hy = cy;
