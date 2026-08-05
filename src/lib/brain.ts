@@ -22,9 +22,10 @@ import { Spring, clamp, prefersReducedMotion } from './spring';
 export const GROUPS: Record<string, string> = {
   core: '#91d45f',
   // marketing used to share the hub's lime, which made the company brain and
-  // the marketing floor indistinguishable. It takes the one hue the rest of
-  // the family leaves open — nothing else sits near magenta.
-  marketing: '#d97ab0',
+  // the marketing floor indistinguishable. It sits in burnt sienna now —
+  // still the only warm red in the family, and its eight branch tints (and
+  // so email's and WhatsApp's) are spun out of this one value.
+  marketing: '#9A4C32',
   hiring: '#d9a441',
   pr: '#a78bda',
   sales: '#5fbfa8',
