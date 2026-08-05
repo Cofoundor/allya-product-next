@@ -357,6 +357,7 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     };
     nodes.push(n);
     nodeById[n.id] = n;
+    measureLabel(n);
     if (parent) parent.kids += 1;
     if (spec.parent && nodeById[spec.parent]) link(spec.parent, n.id);
     if (!revealed) {
@@ -517,6 +518,53 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     });
   }
 
+  /* The interface's face, under the name it was actually registered with.
+     next/font hashes the family ("__Inter_Tight_a1b2c3"), so asking canvas
+     for "Inter Tight" quietly got us the system fallback — wider type than
+     the rest of the UI, which is half of why the labels crowded. */
+  const uiFace = (() => {
+    const v =
+      typeof window === 'undefined'
+        ? ''
+        : getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim();
+    return `${v ? `${v}, ` : ''}"Inter Tight", system-ui, sans-serif`;
+  })();
+  const faceOf = (weight: number, px: number) => `${weight} ${px}px ${uiFace}`;
+
+  /* A label's width IS its claim on the screen: the de-overlap pass, and the
+     clamp that keeps a name inside the box, both read n.lw. A node that has
+     never been measured claims nothing, so it lands on top of whatever is
+     already there and runs off the edge — which is what every node added
+     after load was doing. Measure on the way in, and again on resize. */
+  function measureLabel(n: BrainNode) {
+    ctx.font = faceOf(n.tier === 0 ? 600 : 500, labelSize(n) * clamp(S, 0.9, 1.22));
+    n.lw = ctx.measureText(n.short ?? n.label).width;
+  }
+
+  /** re-taken whenever the box changes size — and again once the webfont
+      has actually landed, since the first pass can beat it */
+  function measureLabels() {
+    for (const n of nodes) measureLabel(n);
+  }
+
+  /* The box wears HTML over the canvas — its title row, its way back out.
+     The graph can't see any of it, so names drifted under the chrome and
+     tangled with it. Their rectangles are taken here, in canvas space, and
+     handed to the label pass as occupied ground. Anything tall enough to be
+     a sheet rather than a strip is skipped: an overlay must not blank every
+     label in the graph on its way open. */
+  let chrome: { l: number; r: number; t: number; b: number }[] = [];
+  function measureChrome() {
+    const cr = canvas.getBoundingClientRect();
+    chrome = [];
+    for (const el of Array.from(box.children)) {
+      if (el === canvas) continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height || r.height > H * 0.25) continue;
+      chrome.push({ l: r.left - cr.left - 5, r: r.right - cr.left + 5, t: r.top - cr.top - 4, b: r.bottom - cr.top + 4 });
+    }
+  }
+
   function resize() {
     const w = box.clientWidth;
     const h = box.clientHeight;
@@ -532,10 +580,8 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     canvas.style.height = `${H}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     layout();
-    for (const n of nodes) {
-      ctx.font = `${n.tier === 0 ? 600 : 500} ${labelSize(n) * clamp(S, 0.9, 1.22)}px "Inter Tight", system-ui, sans-serif`;
-      n.lw = ctx.measureText(n.short ?? n.label).width;
-    }
+    measureLabels();
+    measureChrome();
     // with nothing focused or tracked the camera sits at the centre of the box
     if (!focusNode && !panNode) {
       cam.xT = W / 2;
@@ -606,7 +652,9 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   }
 
   function setHubLabel(label: string) {
-    if (nodeById.co) nodeById.co.label = label || 'Your company';
+    if (!nodeById.co) return;
+    nodeById.co.label = label || 'Your company';
+    measureLabel(nodeById.co);
   }
 
   function grow(cluster: Cluster) {
@@ -1089,9 +1137,24 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
     // outranks a leaf at the same depth — a branch you can walk into should
     // never lose its name to one of its own siblings' thoughts
     const order = nodes.slice().sort((a, b) => (a.tier - b.tier) || ((b.kids ? 1 : 0) - (a.kids ? 1 : 0)) || ((b.ex + (opts.isLive?.(b) ? 0.5 + 0.5 * Math.sin(time * 2.4 + b.phase) : 0)) - (a.ex + (opts.isLive?.(a) ? 0.5 + 0.5 * Math.sin(time * 2.4 + a.phase) : 0))));
-    const placed: { l: number; r: number; t: number; b: number }[] = [];
+    type Box = { l: number; r: number; t: number; b: number };
+    const placed: Box[] = [...chrome];
+    /* the dots are occupied space too. Without this a leaf's name lands
+       straight across someone else's circle, which is what made the web
+       read as a tangle rather than a graph. A node never blocks its own
+       name — that one sits just under its own dot by design. */
+    const dots: { box: Box; n: BrainNode }[] = [];
+    for (const n of nodes) {
+      if (n.rev < 0.02) continue;
+      const [sx, sy] = toScreen(n.x, n.y);
+      const rr = nodeR(n) * cam.z + 2.5;
+      dots.push({ box: { l: sx - rr, r: sx + rr, t: sy - rr, b: sy + rr }, n });
+    }
+    const hits = (a: Box, b: Box) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
+    ctx.lineJoin = 'round';
     for (const n of order) {
       if (n.rev < 0.02) continue;
       const hub = n.tier === 0;
@@ -1103,18 +1166,61 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       const [nsx, nsy] = toScreen(n.x, n.y);
       const nsr = r * cam.z;
       const lx = clamp(nsx, w / 2 + 4, W - w / 2 - 4);
-      let ly = nsy + nsr + 3 * S;
-      if (ly + fs > H - 2) ly = nsy - nsr - 3 * S - fs;
-      const box = { l: lx - w / 2 - 2, r: lx + w / 2 + 2, t: ly - 2, b: ly + fs + 2 };
-      const onScreen = box.r > 0 && box.l < W && box.b > 0 && box.t < H;
-      const free = onScreen && (hub || !placed.some(p => box.l < p.r && box.r > p.l && box.t < p.b && box.b > p.t));
+      const mk = (y: number): Box => ({ l: lx - w / 2 - 6, r: lx + w / 2 + 6, t: y - 4, b: y + fs + 4 });
+
+      /* how loud this name would be if it got a slot. A label the fog has
+         taken down to nothing must not hold a seat: it used to claim its
+         box anyway and quietly cost a lit neighbour its name. */
+      const rest = (hub ? 0.9 : n.tier === 1 ? 0.55 : n.kids ? 0.5 : 0.3) * (n.provisional ? 0.55 : 1);
+      const loud = clamp(rest + n.ex * 0.7 + breath * 0.4, 0, 1) * fogOf(n);
+      if (loud < 0.035) {
+        n.lv = n.lv === undefined ? 0 : n.lv + (0 - n.lv) * Math.min(1, ldt * 22);
+        continue;
+      }
+      /* a place outranks a thought: a branch may sit across a leaf's dot
+         rather than go unnamed, but never across another name */
+      const branch = n.tier <= 1 || !!n.kids;
+      const fits = (bx: Box) =>
+        // wholly inside the box — half a sentence sliding under the edge
+        // was most of what made this look unfinished
+        bx.l >= 0 &&
+        bx.r <= W &&
+        bx.t >= 0 &&
+        bx.b <= H &&
+        (hub ||
+          (!placed.some(p => hits(bx, p)) &&
+            !dots.some(d => d.n !== n && !(branch && d.n.tier >= 2) && hits(bx, d.box))));
+
+      /* below the dot, then above it — a name that can't sit on one side
+         usually has room on the other, and trying both keeps far more of
+         them on screen now that the circles are in the way */
+      const below = nsy + nsr + 3 * S;
+      const above = nsy - nsr - 3 * S - fs;
+      const slots = below + fs > H - 2 ? [above, below] : [below, above];
+      let ly = slots[0];
+      let box = mk(ly);
+      let free = fits(box);
+      if (!free) {
+        ly = slots[1];
+        box = mk(ly);
+        free = fits(box);
+      }
       if (free) placed.push(box);
       const target = free ? 1 : 0;
-      n.lv = n.lv === undefined ? target : n.lv + (target - n.lv) * Math.min(1, ldt * 8);
+      /* out fast, in slow. A name that has lost its slot is still drawn
+         while it fades, and at the same speed both ways the loser and the
+         winner sit on top of each other for a moment — which is exactly
+         the smear the graph got whenever the camera moved. */
+      const rate = target ? 8 : 22;
+      n.lv = n.lv === undefined ? target : n.lv + (target - n.lv) * Math.min(1, ldt * rate);
       if (n.lv < 0.02) continue;
-      const rest = (hub ? 0.9 : n.tier === 1 ? 0.55 : n.kids ? 0.5 : 0.3) * (n.provisional ? 0.55 : 1);
-      const la = clamp(rest + n.ex * 0.7 + breath * 0.4, 0, 1) * n.lv * fogOf(n);
-      ctx.font = `${hub ? 600 : 500} ${fs}px "Inter Tight", system-ui, sans-serif`;
+      const la = loud * n.lv;
+      ctx.font = faceOf(hub ? 600 : 500, fs);
+      // a bed of page-black under the text: the strands and glows run behind
+      // every name, and without it the thin type frays against them
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = hexA('#0a0a0a', 0.78 * la);
+      ctx.strokeText(n.short ?? n.label, lx, ly);
       ctx.fillStyle = hexA(n.tier >= 2 ? '#c7ccd4' : '#f3f4f6', la);
       ctx.fillText(n.short ?? n.label, lx, ly);
     }
@@ -1216,6 +1322,10 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
   const onVisibility = () => (document.hidden ? stop() : start());
   window.addEventListener('resize', onResize);
   document.addEventListener('visibilitychange', onVisibility);
+  // the first measure can happen before the webfont swaps in; take them again
+  document.fonts?.ready.then(() => {
+    if (!destroyed) measureLabels();
+  });
 
   // seed the initial graph
   (opts.nodes || []).forEach((spec) => addNode(spec));
