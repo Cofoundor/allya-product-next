@@ -22,6 +22,7 @@ import type { ApiChip, ApiMessage, BrainGraph, Reply, Review, Surface, WorkList,
 import { Transcript } from '@/components/Transcript';
 import { PressButton } from '@/components/Pressable';
 import { Island } from '@/components/workspace/Island';
+import { BrandCrumbs, type Crumb } from '@/components/workspace/Crumbs';
 import { PagePicker } from '@/components/workspace/PagePicker';
 import { WorkPane } from '@/components/workspace/WorkPane';
 import { Composer } from '@/components/workspace/Composer';
@@ -79,6 +80,16 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
   );
   const needs = work.filter((w) => w.status === 'needs-you');
   const running = work.filter((w) => w.status === 'running');
+
+  /* where this page sits: the company is the root, a floor hangs off it. The
+     label is the backend's ("PR", not "Pr"), so it waits for the surface. */
+  const crumbs = useMemo<Crumb[]>(
+    () =>
+      surfaceId === 'workspace'
+        ? [{ label: 'Company' }]
+        : [{ label: 'Company', href: '/' }, { label: surface?.label ?? '…' }],
+    [surfaceId, surface?.label],
+  );
 
   const showToast = useCallback((text: string) => {
     toastId.current += 1;
@@ -314,11 +325,9 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
         style={accent ? ({ ['--accent' as string]: accent } as CSSProperties) : undefined}
       >
         <header className="topbar">
-          <div className="brand">
-            <span className="lamp" /> Allya{' '}
-            <span className="date">· {surface?.label ?? '…'}</span>
+          <BrandCrumbs trail={crumbs}>
             <PagePicker />
-          </div>
+          </BrandCrumbs>
           <nav className="tabs" aria-label="Panes">
             <PressButton
               type="button"

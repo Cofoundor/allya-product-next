@@ -18,11 +18,10 @@
   border-bottom: 1px solid var(--hairline);
   z-index: 20;
 }
-.brand { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 500; letter-spacing: -0.01em; }
-.topbar .date { color: var(--fg-faint); font-weight: 400; font-size: 13px; }
+/* .brand / .crumbs live in globals.css — every top bar wears the same corner */
 .topbar .spacer { flex: 1; }
 
-/* ---- page switcher, tucked next to the date ---- */
+/* ---- page switcher, tucked next to the crumbs ---- */
 .pagepick { position: relative; display: flex; }
 .pagepick-btn {
   appearance: none; cursor: pointer;
