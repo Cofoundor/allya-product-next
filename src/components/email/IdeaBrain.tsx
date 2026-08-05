@@ -125,14 +125,36 @@ export function IdeaBrain({
   const byId = useMemo(() => new Map(ideas.map((i) => [i.id, i])), [ideas]);
   const byLabel = useMemo(() => new Map(ideas.map((i) => [i.label, i])), [ideas]);
 
+  /* The box takes 460ms to travel between its two heights. The loop has
+     to outlive that — stopping it on the first frame freezes the graph
+     mid-fold, which is the jump you see rather than a fold. Opening is
+     the reverse: start it first, then take one clean resize at the end so
+     it's sharp at the new size instead of waiting for the next probe. */
+  const FOLD_MS = 460;
+  const fold = useCallback(
+    (next: boolean) => {
+      setSmall(next);
+      const h = brainRef.current;
+      if (!h) return;
+      const still = prefersReducedMotion();
+      if (next) {
+        if (still) h.stop();
+        else after(FOLD_MS + 60, () => h.stop());
+      } else {
+        h.start();
+        if (!still) after(FOLD_MS + 60, () => h.resize());
+      }
+    },
+    [after],
+  );
+
   /* It opens, then it folds itself away. You see the graph grow — which
      is the point of arriving here — and then it gets out of the way of
      the work underneath. Touch the button once and this never fires. */
   const autoFold = useCallback(() => {
     if (touched.current) return;
-    setSmall(true);
-    brainRef.current?.stop();
-  }, []);
+    fold(true);
+  }, [fold]);
 
   /* the arrival: land the flight, then open the thoughts out of the anchor */
   const runIntro = useCallback(
@@ -187,9 +209,46 @@ export function IdeaBrain({
 
   return (
     <>
-      <BrainCanvas
-        key={ideas.map((i) => i.id).join('|')}
-        boxClassName={`c-sec brain-box brain-tall${small ? ' is-min' : ''}`}
+      {/* The header lives outside the graph's box, and the box's own height
+          never changes — folding collapses the row it sits in. The engine
+          writes to that box on every resize, so anything animating its
+          height gets restarted frame after frame and never moves. */}
+      <section className={`c-sec es-brain${small ? ' is-min' : ''}`}>
+        <div className="brain-head es-brain-head">
+          <span className="brain-title">
+            <span className="brain-live" /> {page?.ui.brainTitle ?? 'The brain'}
+          </span>
+          <span className="brain-side">
+            <span className="brain-sub">
+              {loading
+                ? 'reading the channel…'
+                : small
+                  ? `${ideas.length} thoughts, folded away`
+                  : `${ideas.length} thoughts — ${page?.ui.brainSubtitle ?? 'touch one'}`}
+            </span>
+            <button
+              type="button"
+              className="es-fold"
+              aria-expanded={!small}
+              aria-label={small ? 'Open the brain' : 'Minimise the brain'}
+              onClick={() => {
+                touched.current = true;
+                fold(!small);
+              }}
+            >
+              {small ? '▢' : '—'}
+            </button>
+          </span>
+        </div>
+
+        <div className="es-brain-body">
+          {/* the grid item must not carry a height of its own, or the row
+              has nothing to collapse — the graph's box keeps its size in
+              here, and this clips it */}
+          <div className="es-brain-clip">
+            <BrainCanvas
+            key={ideas.map((i) => i.id).join('|')}
+            boxClassName="es-brain-canvas"
         onReady={(h) => {
           brainRef.current = h;
           onReady?.(h);
@@ -210,39 +269,10 @@ export function IdeaBrain({
           onOpenNode: setDot,
           onLaunch: leave,
         }}
-      >
-        <div className="brain-head">
-          <span className="brain-title">
-            <span className="brain-live" /> {page?.ui.brainTitle ?? 'The brain'}
-          </span>
-          <span className="brain-side">
-            <span className="brain-sub">
-              {loading
-                ? 'reading the channel…'
-                : small
-                  ? `${ideas.length} thoughts, folded away`
-                  : `${ideas.length} thoughts — ${page?.ui.brainSubtitle ?? 'touch one'}`}
-            </span>
-            {/* folded, the graph keeps its state and stops drawing — the box
-                is the only thing that changes size */}
-            <button
-              type="button"
-              className="es-fold"
-              aria-expanded={!small}
-              aria-label={small ? 'Open the brain' : 'Minimise the brain'}
-              onClick={() => {
-                touched.current = true;
-                const next = !small;
-                setSmall(next);
-                if (next) brainRef.current?.stop();
-                else brainRef.current?.start();
-              }}
-            >
-              {small ? '▢' : '—'}
-            </button>
-          </span>
+            />
+          </div>
         </div>
-      </BrainCanvas>
+      </section>
 
       <DotPage
         info={dot}

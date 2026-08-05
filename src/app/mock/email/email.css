@@ -1,0 +1,128 @@
+/* ============================================================
+   DESIGN MOCK — email marketing. Throwaway styles.
+   ============================================================ */
+
+.em { overflow: hidden; }
+.em-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  width: 100%; max-width: 1120px; margin: 0 auto;
+  padding: 26px 26px 48px;
+}
+
+.em-head { margin-bottom: 20px; }
+.em-head h1 {
+  font-family: var(--serif); font-optical-sizing: auto; font-weight: 440;
+  font-size: 30px; line-height: 1.15; margin: 0 0 6px; color: var(--fg);
+}
+.em-head p { margin: 0; font-size: 14px; color: var(--fg-soft); max-width: 60ch; }
+
+/* ---- the numbers everything else is judged against ---- */
+.em-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.em-stat {
+  display: grid; gap: 2px; padding: 14px 16px;
+  border: 1px solid var(--hairline); border-radius: 13px;
+  background: rgba(255, 255, 255, 0.022);
+}
+.em-stat b {
+  font-size: 26px; font-weight: 500; line-height: 1.1; color: var(--fg);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.em-stat .l { font-size: 12.5px; color: var(--fg-soft); }
+.em-stat .d { font-size: 11.5px; color: color-mix(in srgb, var(--accent) 80%, #ffffff); }
+
+/* ---- the one thing that stops until you look ---- */
+.em-await {
+  border: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 15px; padding: 17px 20px 18px; margin-bottom: 20px;
+  box-shadow: 0 0 40px -18px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.em-await-tag {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 9px;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 85%, #ffffff);
+}
+.em-await h2 {
+  font-family: var(--serif); font-weight: 460; font-size: 19px; line-height: 1.35;
+  margin: 0 0 7px; color: var(--fg); text-wrap: balance;
+}
+.em-await p { margin: 0 0 14px; font-size: 13.5px; line-height: 1.5; color: var(--fg-soft); max-width: 68ch; }
+.em-await-act { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
+.em-await-act .hint { font-size: 12px; color: var(--fg-faint); }
+
+/* ---- two columns: history, then everything that runs itself ---- */
+.em-cols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: start; }
+.em-side { display: grid; gap: 16px; }
+
+.em-panel {
+  border: 1px solid var(--hairline); border-radius: 15px;
+  background: rgba(255, 255, 255, 0.022); padding: 16px 18px 18px;
+}
+.em-panel-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-bottom: 12px;
+}
+.em-panel-head h3 { font-size: 13px; font-weight: 500; margin: 0; color: var(--fg); }
+.em-panel-head span { font-size: 11.5px; color: var(--fg-faint); }
+
+/* a send: subject, how it did, and the bar against your best */
+.em-send { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
+.em-send:last-child { border-bottom: none; padding-bottom: 0; }
+.em-send-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.em-send-top .s { font-size: 13px; line-height: 1.4; color: var(--fg); }
+.em-send-top .o {
+  flex: none; font-size: 13px; font-weight: 500; color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.em-bar { height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.06); margin: 8px 0 6px; }
+.em-bar span {
+  display: block; height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, transparent), var(--accent));
+}
+.em-send-meta { font-size: 11.5px; color: var(--fg-faint); }
+
+/* the warm-up */
+.em-prog { height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); margin-bottom: 8px; }
+.em-prog span {
+  display: block; height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 45%, transparent), var(--accent));
+}
+.em-prog-meta { font-size: 11.5px; line-height: 1.45; color: var(--fg-faint); }
+
+/* the things that run without you */
+.em-seq {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--hairline);
+}
+.em-seq:last-child { border-bottom: none; padding-bottom: 0; }
+.em-seq-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 6px; background: var(--fg-faint); }
+.em-seq.s-live .em-seq-dot {
+  background: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.em-seq.s-draft .em-seq-dot { background: var(--human-ink); }
+.em-seq-copy { min-width: 0; }
+.em-seq-copy .n { font-size: 13px; color: var(--fg); }
+.em-seq-copy .n .t { color: var(--fg-faint); font-size: 12px; }
+.em-seq-copy .m { font-size: 11.5px; color: var(--fg-faint); margin-top: 2px; }
+.em-seq-state {
+  flex: none; font-size: 10px; letter-spacing: 0.04em; border-radius: 999px;
+  padding: 2px 8px; border: 1px solid var(--hairline-strong); color: var(--fg-faint);
+}
+.em-seq-state.s-live {
+  color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.em-seq-state.s-draft { color: var(--human-ink); border-color: var(--human-border); background: var(--human-bg); }
+
+.em-notes p {
+  margin: 0 0 9px; font-family: var(--serif); font-size: 13.5px; line-height: 1.5; color: var(--fg-soft);
+}
+.em-notes p:last-child { margin-bottom: 0; }
+
+.em-down { flex: 1; display: grid; place-items: center; gap: 14px; align-content: center; }
+.em-down p { font-family: var(--serif); font-size: 16px; color: var(--fg-soft); margin: 0; }
+
+@media (max-width: 900px) {
+  .em-stats { grid-template-columns: repeat(2, 1fr); }
+  .em-cols { grid-template-columns: 1fr; }
+}

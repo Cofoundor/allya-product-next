@@ -317,11 +317,39 @@
 }
 
 /* ---- folding the brain away ----
-   The canvas stays mounted so the graph keeps its positions, its camera
-   and whatever it was mid-thought about; only the box changes height,
-   and the engine's loop is stopped while nobody can see it. */
+   The header sits above the graph, and the graph's own box keeps its size
+   forever: folding collapses the row it lives in, from its full height to
+   nothing. That matters — the engine writes to its box on every resize, so
+   a transition on THAT element is restarted frame after frame and never
+   advances a millisecond. A row can't be fought over. */
+.es-brain { padding: 0; overflow: hidden; }
+.es-brain-head {
+  position: static; display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; padding: 13px 16px 12px;
+}
+.es-brain-head .brain-side { display: flex; align-items: center; gap: 10px; }
+
+.es-brain-body {
+  display: grid; grid-template-rows: 1fr;
+  transition: grid-template-rows 460ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.es-brain.is-min .es-brain-body { grid-template-rows: 0fr; }
+.es-brain-clip { min-height: 0; overflow: hidden; }
+
+.es-brain-canvas {
+  position: relative; overflow: hidden;
+  height: clamp(400px, 64vh, 680px);
+}
+.es-brain-canvas canvas {
+  display: block; width: 100%; height: 100%;
+  touch-action: none; cursor: grab;
+  transition: opacity 240ms var(--ease) 140ms;
+}
+.es-brain-canvas canvas:active { cursor: grabbing; }
+.es-brain.is-min canvas { opacity: 0; transition-delay: 0ms; transition-duration: 160ms; }
+
 .es-fold {
-  appearance: none; cursor: pointer; pointer-events: auto;
+  appearance: none; cursor: pointer; flex: none;
   display: grid; place-items: center;
   width: 22px; height: 22px; border-radius: 7px;
   background: rgba(255, 255, 255, 0.04);
@@ -332,6 +360,6 @@
 }
 .es-fold:hover { color: var(--fg); background: var(--raised); border-color: var(--hairline-strong); }
 
-.brain-box.brain-tall.is-min { height: 58px; }
-.brain-box.is-min canvas { opacity: 0; pointer-events: none; }
-.brain-box.is-min .brain-head { top: 0; bottom: 0; align-items: center; }
+@media (prefers-reduced-motion: reduce) {
+  .es-brain-body, .es-brain-canvas canvas { transition: none; }
+}
