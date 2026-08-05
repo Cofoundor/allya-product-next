@@ -47,6 +47,8 @@ export function IdeaBrain({
   const brainRef = useRef<BrainHandle | null>(null);
   const introFor = useRef<BrainHandle | null>(null);
   const [dot, setDot] = useState<OpenNodeInfo | null>(null);
+  /** folded away: the box shrinks to its header and the loop stops */
+  const [small, setSmall] = useState(false);
   const flying = useRef(false);
   const { after, clearAll } = useTimers();
 
@@ -164,7 +166,7 @@ export function IdeaBrain({
     <>
       <BrainCanvas
         key={ideas.map((i) => i.id).join('|')}
-        boxClassName="c-sec brain-box brain-tall"
+        boxClassName={`c-sec brain-box brain-tall${small ? ' is-min' : ''}`}
         onReady={(h) => {
           brainRef.current = h;
           onReady?.(h);
@@ -192,8 +194,28 @@ export function IdeaBrain({
           </span>
           <span className="brain-side">
             <span className="brain-sub">
-              {loading ? 'reading the channel…' : `${ideas.length} thoughts — ${page?.ui.brainSubtitle ?? 'touch one'}`}
+              {loading
+                ? 'reading the channel…'
+                : small
+                  ? `${ideas.length} thoughts, folded away`
+                  : `${ideas.length} thoughts — ${page?.ui.brainSubtitle ?? 'touch one'}`}
             </span>
+            {/* folded, the graph keeps its state and stops drawing — the box
+                is the only thing that changes size */}
+            <button
+              type="button"
+              className="es-fold"
+              aria-expanded={!small}
+              aria-label={small ? 'Open the brain' : 'Minimise the brain'}
+              onClick={() => {
+                const next = !small;
+                setSmall(next);
+                if (next) brainRef.current?.stop();
+                else brainRef.current?.start();
+              }}
+            >
+              {small ? '▢' : '—'}
+            </button>
           </span>
         </div>
       </BrainCanvas>

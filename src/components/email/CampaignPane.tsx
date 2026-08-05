@@ -9,9 +9,12 @@ import type { ChannelPage, Nouns, Send, WorkItem } from '@/lib/api/types';
    questions and one should never push the other off the screen. Above
    them the one button this page exists for.
 
-   "Active" is anything still ahead of you — queued, drafted, awaiting an
-   approval somewhere — plus the automations that run without anyone.
-   "Past" is what already went out.
+   Three of them, because a campaign is in one of three places and they
+   are not the same question:
+
+   "Pending" is waiting on somebody — you, or an approval elsewhere.
+   "Active" is settled and coming: scheduled, plus the automations that
+   run without anyone. "Past" is what already went out.
    ============================================================ */
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -37,7 +40,8 @@ export function CampaignPane({
   onOpen: (s: Send) => void;
   onRetry: () => void;
 }) {
-  const active = campaigns.filter((s) => s.state !== 'sent');
+  const pending = campaigns.filter((s) => s.state === 'draft');
+  const active = campaigns.filter((s) => s.state === 'scheduled');
   const past = campaigns.filter((s) => s.state === 'sent');
   const best = Math.max(0.01, ...past.map((s) => s.openRate));
   const needs = work.filter((w) => w.status === 'needs-you');
@@ -47,7 +51,7 @@ export function CampaignPane({
       <div className="work-head">
         <h2>The work</h2>
         <span className="split-note">
-          {active.length} active · {past.length} past
+          {pending.length} pending · {active.length} active · {past.length} past
         </span>
       </div>
 
@@ -66,8 +70,8 @@ export function CampaignPane({
 
       <section className="es-section">
         <div className="es-section-head">
-          <h3>Active campaigns</h3>
-          <span>{loading ? 'reading…' : `${active.length + (page?.sequences.length ?? 0)} in flight`}</span>
+          <h3>Pending campaigns</h3>
+          <span>{loading ? 'reading…' : `${pending.length + needs.length} waiting on you`}</span>
         </div>
         <div className="es-section-scroll">
           {needs.map((w) => (
@@ -77,7 +81,27 @@ export function CampaignPane({
               <span className="es-pill s-draft">needs you</span>
             </div>
           ))}
+          {pending.map((s) => (
+            <button type="button" className="es-row is-open" key={s.id} onClick={() => onOpen(s)}>
+              <span className="es-row-t">{s.subject}</span>
+              <span className="es-row-m">
+                {s.outcome ?? `${s.when} · ${s.audience.toLowerCase()}`}
+              </span>
+              <span className={`es-pill s-${s.state}`}>{s.state}</span>
+            </button>
+          ))}
+          {!loading && !pending.length && !needs.length ? (
+            <p className="es-empty">Nothing waiting on you.</p>
+          ) : null}
+        </div>
+      </section>
 
+      <section className="es-section">
+        <div className="es-section-head">
+          <h3>Active campaigns</h3>
+          <span>{loading ? 'reading…' : `${active.length + (page?.sequences.length ?? 0)} in flight`}</span>
+        </div>
+        <div className="es-section-scroll">
           {active.map((s) => (
             <button type="button" className="es-row is-open" key={s.id} onClick={() => onOpen(s)}>
               <span className="es-row-t">{s.subject}</span>

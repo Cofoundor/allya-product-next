@@ -14,8 +14,6 @@ import type { CampaignDetail, Nouns } from '@/lib/api/types';
    the row you tapped, the same way a dot page grows out of its dot.
    ============================================================ */
 
-const pct = (n: number) => `${Math.round(n * 100)}%`;
-
 export function CampaignSheet({
   channelId,
   campaignId,
@@ -87,27 +85,35 @@ export function CampaignSheet({
             {send.when} · to {send.audience.toLowerCase()}
           </p>
 
-          {out ? (
-            <div className="es-camp-stats">
-              <div className="es-stat">
-                <b>{send.sent}</b>
-                <span className="l">{nouns?.one === 'broadcast' ? 'delivered' : 'sent'}</span>
+          {/* what's worth showing is the channel's call: a draft has an
+              audience and an approval, one that's out has opens and replies */}
+          <div className="es-camp-stats">
+            {send.kpis.map((k) => (
+              <div className="es-camp-kpi" key={k.id}>
+                <b>{k.value}</b>
+                <span className="l">{k.label}</span>
+                {k.delta ? <span className="d">{k.delta}</span> : null}
               </div>
-              <div className="es-stat">
-                <b>{pct(send.openRate)}</b>
-                <span className="l">{nouns?.metric ?? 'opened'}</span>
-              </div>
-              <div className="es-stat">
-                <b>{send.replies}</b>
-                <span className="l">replied</span>
-              </div>
+            ))}
+          </div>
+
+          {send.dates.length ? (
+            <div className="es-camp-dates">
+              {send.dates.map((d) => (
+                <span className="es-camp-date" key={d.label}>
+                  <span className="k">{d.label}</span>
+                  <span className="v">{d.value}</span>
+                </span>
+              ))}
             </div>
-          ) : (
+          ) : null}
+
+          {!out && send.outcome ? (
             <div className="es-camp-pending">
               <span className="brain-live" />
-              {send.outcome ?? 'Not out yet.'}
+              {send.outcome}
             </div>
-          )}
+          ) : null}
 
           <div className="dot-sec">What it says</div>
           <div className="es-camp-body">

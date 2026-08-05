@@ -187,10 +187,19 @@ export interface Send {
   outcome: string | null;
 }
 
-/** one campaign, opened: the same row plus what it actually said */
+export interface DateFact {
+  label: string;
+  value: string;
+}
+
+/** one campaign, opened: the row, what it said, what it did and when.
+    `kpis` is a list because what's worth showing depends on the state and
+    on the channel — the page renders whatever comes back. */
 export interface CampaignDetail extends Send {
   body: string[];
   ps: string | null;
+  kpis: Stat[];
+  dates: DateFact[];
 }
 
 /** everything the page needs to dress itself — no channel copy ships in
