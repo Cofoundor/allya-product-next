@@ -21,11 +21,12 @@ import { Spring, clamp, prefersReducedMotion } from './spring';
 
 export const GROUPS: Record<string, string> = {
   core: '#91d45f',
-  // marketing used to share the hub's lime, which made the company brain and
-  // the marketing floor indistinguishable. It sits in burnt sienna now —
-  // still the only warm red in the family, and its eight branch tints (and
-  // so email's and WhatsApp's) are spun out of this one value.
-  marketing: '#9A4C32',
+  /* Marketing used to share the hub's lime, which made the company brain and
+     the marketing floor indistinguishable. Clay: the one warm brown in the
+     family, and pitched at the same lightness as the rest of them — a darker
+     brown reads as mud on this background rather than as a floor. Its eight
+     branch tints, and so email's and WhatsApp's, are spun out of this value. */
+  marketing: '#B96A4A',
   hiring: '#d9a441',
   pr: '#a78bda',
   sales: '#5fbfa8',
