@@ -19,12 +19,15 @@ export function OngoingCampaigns({
   loading,
   error,
   onRetry,
+  bare,
 }: {
   page: EmailPage | null;
   work: WorkItem[];
   loading: boolean;
   error: boolean;
   onRetry: () => void;
+  /** the pane already says what this is — don't say it twice */
+  bare?: boolean;
 }) {
   const scheduled = (page?.sends ?? []).filter((s) => s.state !== 'sent');
   const sent = (page?.sends ?? []).filter((s) => s.state === 'sent');
@@ -33,10 +36,12 @@ export function OngoingCampaigns({
 
   return (
     <section className="c-sec es-ongoing">
-      <div className="es-box-head">
-        <h2>Ongoing campaigns</h2>
-        <span>{loading ? 'reading…' : `${scheduled.length + (page?.sequences.length ?? 0)} in flight`}</span>
-      </div>
+      {bare ? null : (
+        <div className="es-box-head">
+          <h2>Ongoing campaigns</h2>
+          <span>{loading ? 'reading…' : `${scheduled.length + (page?.sequences.length ?? 0)} in flight`}</span>
+        </div>
+      )}
 
       {error ? (
         <div className="es-down">

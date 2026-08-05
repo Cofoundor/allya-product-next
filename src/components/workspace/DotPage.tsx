@@ -41,6 +41,12 @@ interface DotPageProps {
   leafWord?: string;
   /** some dots are whole pages of their own — Marketing opens its own brain */
   deepLink?: (info: OpenNodeInfo) => { href: string; label: string; note?: string } | null;
+  /** what this dot is, in one line, when the caller knows better than the
+      generic "a thought Allya is holding" — a direction's page does */
+  blurbFor?: (info: OpenNodeInfo) => string | null;
+  /** the button at the bottom. Defaults to asking Allya about it; a page
+      that can act on the dot says what the action is instead */
+  ctaFor?: (info: OpenNodeInfo) => string;
 }
 
 export function DotPage({
@@ -54,6 +60,8 @@ export function DotPage({
   branchWord,
   leafWord = 'thought',
   deepLink,
+  blurbFor,
+  ctaFor,
 }: DotPageProps) {
   const reduced = useReducedMotion();
 
@@ -116,7 +124,7 @@ export function DotPage({
 
           {dept ? (
             <>
-              <p className="dot-blurb">{deptCopy[info.group] ?? ''}</p>
+              <p className="dot-blurb">{blurbFor?.(info) ?? deptCopy[info.group] ?? ''}</p>
               {deep ? (
                 <Link className="dot-deep" href={deep.href} onClick={onClose}>
                   <span className="dd-copy">
@@ -138,8 +146,8 @@ export function DotPage({
             </>
           ) : (
             <p className="dot-blurb">
-              A thought Allya is holding under {info.parent || 'your company'}. It stays here until it
-              becomes work — or you tell her to drop it.
+              {blurbFor?.(info) ??
+                `A thought Allya is holding under ${info.parent || 'your company'}. It stays here until it becomes work — or you tell her to drop it.`}
             </p>
           )}
 
@@ -159,7 +167,7 @@ export function DotPage({
           )}
 
           <button type="button" className="dot-cta" onClick={() => onAsk(info.label)}>
-            Ask Allya about {info.label.toLowerCase()} →
+            {ctaFor?.(info) ?? `Ask Allya about ${info.label.toLowerCase()} →`}
           </button>
         </div>
       </section>

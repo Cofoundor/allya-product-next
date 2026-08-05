@@ -1184,6 +1184,11 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       /* a place outranks a thought: a branch may sit across a leaf's dot
          rather than go unnamed, but never across another name */
       const branch = n.tier <= 1 || !!n.kids;
+      /* the hub and the node the layout is built around name the place you
+         are standing in. Those two never lose their labels — on a sprayed
+         floor the anchor sits directly under its own fan of thoughts, and
+         it was losing its name to them. */
+      const named = hub || n.id === opts.anchorId;
       const fits = (bx: Box) =>
         // wholly inside the box — half a sentence sliding under the edge
         // was most of what made this look unfinished
@@ -1191,9 +1196,8 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
         bx.r <= W &&
         bx.t >= 0 &&
         bx.b <= H &&
-        (hub ||
-          (!placed.some(p => hits(bx, p)) &&
-            !dots.some(d => d.n !== n && !(branch && d.n.tier >= 2) && hits(bx, d.box))));
+        !placed.some(p => hits(bx, p)) &&
+        !dots.some(d => d.n !== n && !(branch && d.n.tier >= 2) && hits(bx, d.box));
 
       /* below the dot, then above it — a name that can't sit on one side
          usually has room on the other, and trying both keeps far more of
@@ -1208,6 +1212,15 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
         ly = slots[1];
         box = mk(ly);
         free = fits(box);
+      }
+      /* a name that must be shown takes its first slot anyway — but only
+         after both were tried honestly, so two of them never stack. On a
+         sprayed floor that's the anchor keeping its name under its own fan
+         of thoughts, and the root keeping its place at the bottom edge. */
+      if (!free && named) {
+        ly = slots[0];
+        box = mk(ly);
+        free = true;
       }
       if (free) placed.push(box);
       const target = free ? 1 : 0;

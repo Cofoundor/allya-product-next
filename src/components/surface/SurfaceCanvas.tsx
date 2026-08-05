@@ -9,7 +9,7 @@ import { KnowledgeFeed } from '@/components/workspace/KnowledgeFeed';
 import { useTimers } from '@/lib/hooks';
 import { prefersReducedMotion } from '@/lib/spring';
 import { GROUPS, branchTints, type BrainHandle, type NodeSpec, type OpenNodeInfo } from '@/lib/brain';
-import { paths } from '@/lib/api/resources';
+import { isDirection, paths } from '@/lib/api/resources';
 import { useResource } from '@/lib/api/useResource';
 import type { BrainGraph, Schedule, Surface, WorkItem } from '@/lib/api/types';
 import { takeLaunch } from './launch';
@@ -58,6 +58,15 @@ export function SurfaceCanvas({
     setDot(null);
     brainRef.current?.clearFocus();
   }, []);
+
+  /* Some directions are rooms, not panels. The API doesn't know that yet —
+     it has no `surface` on a branch — so the one that has a page of its own
+     is marked here, and from then on it behaves like every other place you
+     can fly into: tap the dot, the camera dives, the route changes. */
+  const launchable = useCallback(
+    (ns: NodeSpec[]) => ns.map((n) => (isDirection(n.id) ? { ...n, surface: n.id } : n)),
+    [],
+  );
 
   const branches = brain ? brain.nodes.filter((n) => n.parent === brain.anchorId && n.tier === 2) : [];
   const spray = brain?.layout === 'spray';
@@ -157,7 +166,7 @@ export function SurfaceCanvas({
               runIntro(h, brain);
             }}
             options={{
-              nodes: brain.nodes as NodeSpec[],
+              nodes: launchable(brain.nodes as NodeSpec[]),
               cross: brain.links,
               layout: brain.layout,
               anchorId: brain.anchorId,
@@ -210,7 +219,9 @@ export function SurfaceCanvas({
                 key={d.id}
                 disabled={!grown}
                 style={{ ['--dir' as string]: tints[d.group] ?? GROUPS[d.group] }}
-                onClick={() => brainRef.current?.openNode(d.id)}
+                // a direction with a room of its own is flown into from the
+                // rail too — the rail and the dot must never disagree
+                onClick={() => (isDirection(d.id) ? onLaunch(d.id, d.id) : brainRef.current?.openNode(d.id))}
               >
                 <span className="svc-dir-dot" />
                 {d.label}
@@ -305,15 +316,8 @@ export function SurfaceCanvas({
               note: 'this floor is one branch of it — the cord below is the same brain',
             };
           }
-          // one direction has a page of its own: email opens as a room you
-          // can work in, not a panel you read
-          if (n.id === 'email' && surfaceId === 'marketing') {
-            return {
-              href: '/marketing/email',
-              label: 'Open email marketing →',
-              note: 'its own brain, and a campaign written from five answers',
-            };
-          }
+          // a direction with a page of its own never gets here — tapping it
+          // flies, the same as tapping a service on the company brain
           return null;
         }}
         onClose={closeDot}

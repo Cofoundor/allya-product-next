@@ -6,15 +6,12 @@
    collide with the `em-` design mock at /mock/email.
    ============================================================ */
 
-.es-page {
-  flex: 1; min-height: 0; overflow-y: auto;
-  padding: 22px 24px 64px;
-}
-.es-inner {
-  width: 100%; max-width: 780px; margin: 0 auto;
-  display: flex; flex-direction: column; gap: 14px;
-}
-.es-page .canvas-greet { max-width: 32ch; margin-bottom: 2px; }
+/* the page wears the floor's shell (.app / .workspace / .pane-chat /
+   .pane-work) — only what's inside the boxes is ours */
+.es-pane-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+.es-pane-scroll .c-sec { border: none; background: none; padding: 0; }
+.es-thread-note { text-align: center; font-size: 12.5px; color: var(--fg-faint); margin-bottom: 14px; }
+.es-draft-slot { flex: none; max-height: 46vh; overflow-y: auto; padding: 0 24px 4px; }
 
 /* ---- the head every box wears ---- */
 .es-box-head {
@@ -30,50 +27,6 @@
   color: var(--fg-faint); margin-bottom: 8px;
 }
 .es-empty { margin: 0; font-size: 13.5px; color: var(--fg-soft); line-height: 1.55; }
-
-/* ---- the brain, cropped to email ---- */
-.es-brain { position: relative; padding: 0; overflow: hidden; }
-.es-brain .brain-head {
-  position: absolute; top: 14px; left: 17px; right: 17px; z-index: 2;
-  display: flex; align-items: baseline; justify-content: space-between;
-  pointer-events: none;
-}
-.es-brain-box {
-  position: relative; overflow: hidden;
-  height: clamp(300px, 44vh, 420px);
-  border-radius: 15px;
-  background:
-    radial-gradient(120% 100% at 50% 60%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 62%),
-    #101010;
-}
-.es-brain-box canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
-.es-brain-box canvas:active { cursor: grabbing; }
-.es-brain-waiting { display: grid; place-items: center; }
-.es-brain-waiting p { margin: 0; font-size: 13px; color: var(--fg-faint); }
-
-/* the panel a tapped idea opens, over the bottom of the graph */
-.es-idea {
-  position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 3;
-  background: color-mix(in srgb, var(--accent) 7%, rgba(16, 16, 16, 0.96));
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 13px; padding: 14px 16px 15px;
-  box-shadow: 0 18px 48px -20px rgba(0, 0, 0, 0.9);
-  animation: es-idea-in 220ms var(--ease) both;
-}
-@keyframes es-idea-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.es-idea-top { display: flex; align-items: center; justify-content: space-between; }
-.es-idea h3 {
-  margin: 8px 0 4px; font-family: var(--serif); font-optical-sizing: auto;
-  font-weight: 440; font-size: 19px; color: var(--fg);
-}
-.es-idea p { margin: 0 0 12px; font-size: 13px; color: var(--fg-soft); line-height: 1.5; }
-.es-idea-act { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
-.es-idea-act .hint { font-size: 11.5px; color: var(--fg-faint); }
-.es-idea-x {
-  appearance: none; background: none; border: none; cursor: pointer;
-  color: var(--fg-faint); font-size: 18px; line-height: 1; padding: 2px 4px;
-}
-.es-idea-x:hover { color: var(--fg); }
 
 /* ---- state pills, one vocabulary for the whole page ---- */
 .es-pill {
@@ -98,32 +51,6 @@
 .es-stat b { font-size: 21px; font-weight: 500; letter-spacing: -0.02em; color: var(--fg); }
 .es-stat .l { font-size: 11.5px; color: var(--fg-soft); }
 .es-stat .d { font-size: 11px; color: var(--fg-faint); }
-
-/* ---- the conversation ---- */
-.es-thread {
-  max-height: 340px; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 2px 2px 6px;
-}
-.es-field {
-  display: flex; align-items: center; gap: 8px; margin-top: 12px;
-  background: var(--surface); border: 1px solid var(--hairline-strong);
-  border-radius: 12px; padding: 5px 5px 5px 14px;
-}
-.es-field:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
-.es-field input {
-  flex: 1; min-width: 0; background: none; border: none; outline: none;
-  color: var(--fg); font-family: inherit; font-size: 14px; padding: 9px 0;
-}
-.es-field input::placeholder { color: var(--fg-faint); }
-.es-chat-done { margin-top: 12px; }
-.es-restart {
-  appearance: none; cursor: pointer;
-  background: none; border: 1px solid var(--hairline-strong); border-radius: 999px;
-  color: var(--fg-soft); font-size: 12.5px; font-weight: 500; padding: 7px 14px;
-  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
-}
-.es-restart:hover { color: var(--fg); border-color: var(--fg-faint); }
 
 /* ---- the campaign ---- */
 .es-draft.is-empty .es-empty { max-width: 52ch; }

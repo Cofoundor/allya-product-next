@@ -111,6 +111,9 @@ export interface Idea {
   moves: { id: string; label: string }[];
   /** what it puts in the composer when you start a campaign from it */
   seed: string;
+  /** the work item this thought mirrors, so the dot breathes when it's
+      the one waiting on the founder */
+  work?: string;
 }
 
 /** Ideas that aren't running yet. Craft, not claims — nothing here asserts
@@ -166,6 +169,8 @@ export function ideasFrom(page: EmailPage | null): Idea[] {
         { id: 'i-next-who', label: next.audience },
       ],
       seed: next.subject,
+      // the queued send is usually the thing waiting on the founder
+      work: page.awaiting ?? undefined,
     });
   }
 
