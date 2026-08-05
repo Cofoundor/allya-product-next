@@ -185,6 +185,9 @@ export interface Send {
   state: 'sent' | 'scheduled' | 'draft';
   /** what it did, in its own words */
   outcome: string | null;
+  /** the work item this campaign waits behind, if it waits on a human at
+      all. One with it is pending, whatever its state says. */
+  workId: string | null;
 }
 
 export interface DateFact {
@@ -206,6 +209,9 @@ export interface CampaignDetail extends Send {
     the bundle, so a new channel is a backend change */
 export interface ChannelUi {
   tint: string;
+  /** the floor this direction hangs off, as the crumb and brain need it */
+  floorLabel: string;
+  floorHref: string;
   placeholder: string;
   suggestions: string[];
   knowTitle: string;
@@ -213,6 +219,15 @@ export interface ChannelUi {
   brainSubtitle: string;
   backLabel: string;
   backHref: string;
+}
+
+/** a direction with a room of its own: which dots on a floor's brain are
+    places you fly into, and where they go */
+export interface DirectionSummary {
+  id: string;
+  label: string;
+  href: string;
+  surfaceId: string;
 }
 
 export type AnswerKey = 'audience' | 'point' | 'proof' | 'ask' | 'when';

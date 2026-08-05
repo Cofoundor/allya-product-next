@@ -40,11 +40,18 @@ export function CampaignPane({
   onOpen: (s: Send) => void;
   onRetry: () => void;
 }) {
-  const pending = campaigns.filter((s) => s.state === 'draft');
-  const active = campaigns.filter((s) => s.state === 'scheduled');
+  const needs = work.filter((w) => w.status === 'needs-you');
+  const waits = (c: Send) => !!c.workId && needs.some((w) => w.id === c.workId);
+
+  /* Pending is "waiting on somebody": a draft, or anything held behind a
+     work item that needs you — which is a campaign you can open, not a
+     note you can only read. Active is what's settled and coming. */
+  const pending = campaigns.filter((s) => s.state === 'draft' || waits(s));
+  const active = campaigns.filter((s) => s.state === 'scheduled' && !waits(s));
   const past = campaigns.filter((s) => s.state === 'sent');
   const best = Math.max(0.01, ...past.map((s) => s.openRate));
-  const needs = work.filter((w) => w.status === 'needs-you');
+  // a work item with no campaign of its own still has to be shown somewhere
+  const loose = needs.filter((w) => !campaigns.some((c) => c.workId === w.id));
 
   return (
     <>
@@ -71,10 +78,10 @@ export function CampaignPane({
       <section className="es-section">
         <div className="es-section-head">
           <h3>Pending campaigns</h3>
-          <span>{loading ? 'reading…' : `${pending.length + needs.length} waiting on you`}</span>
+          <span>{loading ? 'reading…' : `${pending.length + loose.length} waiting on you`}</span>
         </div>
         <div className="es-section-scroll">
-          {needs.map((w) => (
+          {loose.map((w) => (
             <div className="es-wait-row" key={w.id}>
               <span className="brain-live" />
               <span className="es-wait-copy">{w.say ?? w.title}</span>
@@ -87,10 +94,12 @@ export function CampaignPane({
               <span className="es-row-m">
                 {s.outcome ?? `${s.when} · ${s.audience.toLowerCase()}`}
               </span>
-              <span className={`es-pill s-${s.state}`}>{s.state}</span>
+              <span className={`es-pill ${waits(s) ? 's-draft' : `s-${s.state}`}`}>
+                {waits(s) ? 'needs you' : s.state}
+              </span>
             </button>
           ))}
-          {!loading && !pending.length && !needs.length ? (
+          {!loading && !pending.length && !loose.length ? (
             <p className="es-empty">Nothing waiting on you.</p>
           ) : null}
         </div>

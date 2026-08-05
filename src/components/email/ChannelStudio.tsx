@@ -50,10 +50,12 @@ export default function ChannelStudio({ channelId }: { channelId: string }) {
 
   const page = pageRes.data;
   const work = useMemo(() => workRes.data ?? [], [workRes.data]);
-  const accent = useMemo(
-    () => (page ? (branchTints(GROUPS.marketing)[page.ui.tint] ?? GROUPS.marketing) : GROUPS.marketing),
-    [page],
-  );
+  /* the direction wears one of its own floor's branch tints — which floor
+     that is comes with the page, so a channel can live anywhere */
+  const accent = useMemo(() => {
+    const floor = page ? (GROUPS[page.surfaceId] ?? GROUPS.marketing) : GROUPS.marketing;
+    return page ? (branchTints(floor)[page.ui.tint] ?? floor) : floor;
+  }, [page]);
 
   const onProgress = useCallback((a: Answers) => {
     setAnswers(a);
@@ -135,7 +137,7 @@ export default function ChannelStudio({ channelId }: { channelId: string }) {
         <BrandCrumbs
           trail={[
             { label: 'Company', href: '/' },
-            { label: 'Marketing', href: '/marketing' },
+            { label: page?.ui.floorLabel ?? '…', href: page?.ui.floorHref ?? '/' },
             { label: page?.label ?? '…' },
           ]}
         />

@@ -18,7 +18,17 @@ import {
   warmSurface,
 } from '@/lib/api/resources';
 import { useResource } from '@/lib/api/useResource';
-import type { ApiChip, ApiMessage, BrainGraph, Reply, Review, Surface, WorkList, WorkItem } from '@/lib/api/types';
+import type {
+  ApiChip,
+  ApiMessage,
+  BrainGraph,
+  DirectionSummary,
+  Reply,
+  Review,
+  Surface,
+  WorkList,
+  WorkItem,
+} from '@/lib/api/types';
 import { Transcript } from '@/components/Transcript';
 import { PressButton } from '@/components/Pressable';
 import { Island } from '@/components/workspace/Island';
@@ -48,6 +58,8 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
   const brainRes = useResource<BrainGraph>(paths.brain(surfaceId));
   const workRes = useResource<WorkList>(paths.work(surfaceId));
   const openingRes = useResource<Reply>(paths.conversation(surfaceId));
+  // a direction's href is the API's to know; the same GET the canvas reads
+  const dirsRes = useResource<DirectionSummary[]>(paths.directions());
 
   // the server owns the list; this session owns whatever it has changed since
   const [changed, setChanged] = useState<Record<string, WorkItem>>({});
@@ -248,15 +260,16 @@ export default function SurfaceWorkspace({ surfaceId }: { surfaceId: string }) {
       if (flying.current || service === surfaceId) return;
       flying.current = true;
       setLaunching(true);
-      warmSurface(service); // the arrival shouldn't wait on a round trip
+      const dir = (dirsRes.data ?? []).find((d) => d.id === service);
+      warmSurface(service, !!dir); // the arrival shouldn't wait on a round trip
       const go = () => {
         markLaunch(service);
-        router.push(surfaceHref(service));
+        router.push(dir ? dir.href : surfaceHref(service));
       };
       if (brainRef.current) brainRef.current.launchInto(nodeId, go);
       else go();
     },
-    [router, surfaceId],
+    [dirsRes.data, router, surfaceId],
   );
 
   /* everywhere this brain can fly to is one tap away — have it ready */

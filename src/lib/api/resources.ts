@@ -32,6 +32,7 @@ export const paths = {
   gate: () => '/gate',
   onboarding: (sid: string) => `/surfaces/${sid}/onboarding`,
   instrument: (sid: string) => `/surfaces/${sid}/instrument`,
+  directions: () => '/directions',
   direction: (did: string) => `/directions/${did}`,
   campaigns: (did: string) => `/directions/${did}/campaigns`,
   campaign: (did: string, cid: string) => `/directions/${did}/campaigns/${cid}`,
@@ -47,24 +48,17 @@ export async function completeOnboarding(sid: string, answers: Record<string, st
   return res;
 }
 
-/* A direction is one job inside a floor, not a floor of its own: it has a
-   page and you can fly into it, but the API has no /surfaces/{id} for it.
-   One map so the link, the prefetch and the flight all agree. */
-export const DIRECTION_HREF: Record<string, string> = {
-  email: '/marketing/email',
-  whatsapp: '/marketing/whatsapp',
-};
-export const isDirection = (id: string) => id in DIRECTION_HREF;
-
 /** where a surface lives — the workspace is the root, services are slugs.
-    Mirrors the `href` the API returns from /surfaces. */
-export const surfaceHref = (sid: string) => DIRECTION_HREF[sid] ?? (sid === 'workspace' ? '/' : `/${sid}`);
+    Mirrors the `href` the API returns from /surfaces. A direction is not a
+    surface: its href comes from /directions, which the caller has. */
+export const surfaceHref = (sid: string) => (sid === 'workspace' ? '/' : `/${sid}`);
 
 /** pull a surface's page data down before navigating into it */
-export function warmSurface(sid: string) {
-  // a direction's page reads one endpoint, and it isn't a surface
-  if (isDirection(sid)) {
+export function warmSurface(sid: string, direction = false) {
+  // a direction's page reads its own endpoints, and it isn't a surface
+  if (direction) {
     prefetch(paths.direction(sid));
+    prefetch(paths.campaigns(sid));
     return;
   }
   prefetch(paths.surface(sid));

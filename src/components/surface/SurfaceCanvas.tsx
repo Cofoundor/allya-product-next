@@ -9,9 +9,9 @@ import { KnowledgeFeed } from '@/components/workspace/KnowledgeFeed';
 import { useTimers } from '@/lib/hooks';
 import { prefersReducedMotion } from '@/lib/spring';
 import { GROUPS, branchTints, type BrainHandle, type NodeSpec, type OpenNodeInfo } from '@/lib/brain';
-import { isDirection, paths } from '@/lib/api/resources';
+import { paths } from '@/lib/api/resources';
 import { useResource } from '@/lib/api/useResource';
-import type { BrainGraph, Schedule, Surface, WorkItem } from '@/lib/api/types';
+import type { BrainGraph, DirectionSummary, Schedule, Surface, WorkItem } from '@/lib/api/types';
 import { takeLaunch } from './launch';
 
 /* The quiet canvas: greeting, the brain, the one decision, and two boxes.
@@ -53,6 +53,12 @@ export function SurfaceCanvas({
   const introFor = useRef<BrainHandle | null>(null);
 
   const schedule = useResource<Schedule>(surfaceId ? paths.schedule(surfaceId) : null);
+  // which dots are rooms of their own is the API's answer, not a list here
+  const dirsRes = useResource<DirectionSummary[]>(paths.directions());
+  const isRoom = useCallback(
+    (id: string) => (dirsRes.data ?? []).some((d) => d.id === id),
+    [dirsRes.data],
+  );
 
   const closeDot = useCallback(() => {
     setDot(null);
@@ -64,8 +70,8 @@ export function SurfaceCanvas({
      is marked here, and from then on it behaves like every other place you
      can fly into: tap the dot, the camera dives, the route changes. */
   const launchable = useCallback(
-    (ns: NodeSpec[]) => ns.map((n) => (isDirection(n.id) ? { ...n, surface: n.id } : n)),
-    [],
+    (ns: NodeSpec[]) => ns.map((n) => (isRoom(n.id) ? { ...n, surface: n.id } : n)),
+    [isRoom],
   );
 
   const branches = brain ? brain.nodes.filter((n) => n.parent === brain.anchorId && n.tier === 2) : [];
@@ -221,7 +227,7 @@ export function SurfaceCanvas({
                 style={{ ['--dir' as string]: tints[d.group] ?? GROUPS[d.group] }}
                 // a direction with a room of its own is flown into from the
                 // rail too — the rail and the dot must never disagree
-                onClick={() => (isDirection(d.id) ? onLaunch(d.id, d.id) : brainRef.current?.openNode(d.id))}
+                onClick={() => (isRoom(d.id) ? onLaunch(d.id, d.id) : brainRef.current?.openNode(d.id))}
               >
                 <span className="svc-dir-dot" />
                 {d.label}

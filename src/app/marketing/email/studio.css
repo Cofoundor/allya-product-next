@@ -246,9 +246,24 @@
 /* opened, a campaign gets room: it carries six readings, three dates and
    its own words, and none of that reads well through a letterbox */
 /* the sheet and its scroller must agree on the ceiling — the base sheet
-   is bottom-anchored, so a taller child spills out under its own edge */
-.es-camp { width: min(880px, 94vw); max-width: min(880px, 94vw); max-height: 90vh; }
-.es-camp .dot-scroll { max-height: 90vh; padding: 20px 26px 30px; }
+   is bottom-anchored, so a taller child spills out under its own edge and
+   paints on the page. They agree; the clip is there so a stray padding or
+   border can never make them disagree again. */
+.es-camp {
+  width: min(880px, 94vw); max-width: min(880px, 94vw);
+  max-height: 90vh; overflow: hidden;
+}
+.es-camp .dot-scroll {
+  max-height: 90vh; padding: 20px 26px 30px;
+  /* the sheet is short of its content by design; without this the wheel
+     hits the end and carries on scrolling the page underneath, which
+     reads as "the campaign won't scroll" */
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+/* a campaign's own words are the thing you came to read: give them the
+   room, and let them scroll on their own once there's a lot of them */
+.es-camp-body { max-height: 46vh; overflow-y: auto; overscroll-behavior: contain; }
 
 .es-camp-stats {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;

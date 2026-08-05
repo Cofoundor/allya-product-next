@@ -49,13 +49,18 @@ export function IdeaBrain({
   const [dot, setDot] = useState<OpenNodeInfo | null>(null);
   /** folded away: the box shrinks to its header and the loop stops */
   const [small, setSmall] = useState(false);
+  /** once you've touched the button, the page stops deciding for you */
+  const touched = useRef(false);
   const flying = useRef(false);
   const { after, clearAll } = useTimers();
 
   // the direction's own hue: the floor's branch tint the channel names
+  /** the floor this direction hangs off — its hue, its cord, its way back */
+  const floorId = page?.surfaceId ?? 'marketing';
+  const floorHue = GROUPS[floorId] ?? GROUPS.marketing;
   const accent = useMemo(
-    () => tintsOf(GROUPS.marketing)[page?.ui.tint ?? 'b4'] ?? GROUPS.marketing,
-    [page?.ui.tint],
+    () => tintsOf(floorHue)[page?.ui.tint ?? 'b4'] ?? floorHue,
+    [floorHue, page?.ui.tint],
   );
   const tints = useMemo(() => branchTints(accent), [accent]);
 
@@ -64,22 +69,28 @@ export function IdeaBrain({
   const leave = useCallback(() => {
     if (flying.current) return;
     flying.current = true;
-    const back = page?.ui.backHref ?? '/marketing';
+    const back = page?.ui.backHref ?? '/';
     const go = () => {
-      markLaunch('marketing');
+      markLaunch(floorId);
       router.push(back);
     };
-    if (brainRef.current) brainRef.current.launchInto('marketing', go);
+    if (brainRef.current) brainRef.current.launchInto(floorId, go);
     else go();
-  }, [page?.ui.backHref, router]);
+  }, [floorId, page?.ui.backHref, router]);
 
-  /* marketing (tier 0) — email (tier 1, the anchor) — a thought per idea
-     (tier 2) — what each one is made of (tier 3). Everything but the cord
-     starts hidden, and the intro grows it. */
+  /* the floor (tier 0) — this direction (tier 1, the anchor) — a thought
+     per idea (tier 2) — what each one is made of (tier 3). Everything but
+     the cord starts hidden, and the intro grows it. */
   const nodes = useMemo<NodeSpec[]>(() => {
     const out: NodeSpec[] = [
-      { id: 'marketing', label: 'Marketing', tier: 0, group: 'marketing', surface: 'marketing' },
-      { id: channelId, label: page?.label ?? '…', tier: 1, group: channelId, parent: 'marketing' },
+      {
+        id: floorId,
+        label: page?.ui.floorLabel ?? '…',
+        tier: 0,
+        group: floorId,
+        surface: floorId,
+      },
+      { id: channelId, label: page?.label ?? '…', tier: 1, group: channelId, parent: floorId },
     ];
     ideas.forEach((idea, i) => {
       const tint = `b${(i % 8) + 1}`;
@@ -107,12 +118,21 @@ export function IdeaBrain({
       );
     });
     return out;
-  }, [channelId, ideas, page?.label]);
+  }, [channelId, floorId, ideas, page?.label, page?.ui.floorLabel]);
 
   /* a tapped dot reports its parent by LABEL, not id (that's what the sheet
      shows), so a thought's details have to be findable both ways */
   const byId = useMemo(() => new Map(ideas.map((i) => [i.id, i])), [ideas]);
   const byLabel = useMemo(() => new Map(ideas.map((i) => [i.label, i])), [ideas]);
+
+  /* It opens, then it folds itself away. You see the graph grow — which
+     is the point of arriving here — and then it gets out of the way of
+     the work underneath. Touch the button once and this never fires. */
+  const autoFold = useCallback(() => {
+    if (touched.current) return;
+    setSmall(true);
+    brainRef.current?.stop();
+  }, []);
 
   /* the arrival: land the flight, then open the thoughts out of the anchor */
   const runIntro = useCallback(
@@ -127,6 +147,7 @@ export function IdeaBrain({
       if (prefersReducedMotion()) {
         [...thoughts, ...leaves].forEach((id) => h.reveal(id));
         h.frame(null, 1, true);
+        after(900, autoFold);
         return;
       }
 
@@ -150,8 +171,10 @@ export function IdeaBrain({
         }),
       );
       after(leafAt + leaves.length * 32 + 400, () => h.setThoughts(true));
+      // long enough to watch it finish arriving, short enough not to wait
+      after(leafAt + leaves.length * 32 + 1900, autoFold);
     },
-    [after, channelId, clearAll, nodes],
+    [after, autoFold, channelId, clearAll, nodes],
   );
 
   const closeDot = useCallback(() => {
@@ -208,6 +231,7 @@ export function IdeaBrain({
               aria-expanded={!small}
               aria-label={small ? 'Open the brain' : 'Minimise the brain'}
               onClick={() => {
+                touched.current = true;
                 const next = !small;
                 setSmall(next);
                 if (next) brainRef.current?.stop();
@@ -232,7 +256,7 @@ export function IdeaBrain({
         deepLink={(n) =>
           n.id === channelId
             ? {
-                href: page?.ui.backHref ?? '/marketing',
+                href: page?.ui.backHref ?? '/',
                 label: page?.ui.backLabel ?? 'Back',
                 note: 'this is one of its directions — the cord below is the same brain',
               }
