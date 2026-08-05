@@ -1,0 +1,135 @@
+'use client';
+
+import type { EmailPage, Nouns, Send, WorkItem } from '@/lib/api/types';
+
+/* ============================================================
+   The right-hand pane: what's running, and what already ran.
+
+   Two sections that scroll separately, because they answer different
+   questions and one should never push the other off the screen. Above
+   them the one button this page exists for.
+
+   "Active" is anything still ahead of you — queued, drafted, awaiting an
+   approval somewhere — plus the automations that run without anyone.
+   "Past" is what already went out.
+   ============================================================ */
+
+const pct = (n: number) => `${Math.round(n * 100)}%`;
+
+export function CampaignPane({
+  page,
+  work,
+  nouns,
+  loading,
+  error,
+  onCreate,
+  onOpen,
+  onRetry,
+}: {
+  page: EmailPage | null;
+  work: WorkItem[];
+  nouns: Nouns;
+  loading: boolean;
+  error: boolean;
+  onCreate: () => void;
+  onOpen: (s: Send) => void;
+  onRetry: () => void;
+}) {
+  const active = (page?.sends ?? []).filter((s) => s.state !== 'sent');
+  const past = (page?.sends ?? []).filter((s) => s.state === 'sent');
+  const best = Math.max(0.01, ...past.map((s) => s.openRate));
+  const needs = work.filter((w) => w.status === 'needs-you');
+
+  return (
+    <>
+      <div className="work-head">
+        <h2>The work</h2>
+        <span className="split-note">
+          {active.length} active · {past.length} past
+        </span>
+      </div>
+
+      <button type="button" className="es-create" onClick={onCreate}>
+        <span className="es-create-plus">+</span> Create a campaign
+      </button>
+
+      {error ? (
+        <div className="es-down">
+          <p>Can’t reach the server — this pane is all live data.</p>
+          <button type="button" className="cta" onClick={onRetry}>
+            Try again
+          </button>
+        </div>
+      ) : null}
+
+      <section className="es-section">
+        <div className="es-section-head">
+          <h3>Active campaigns</h3>
+          <span>{loading ? 'reading…' : `${active.length + (page?.sequences.length ?? 0)} in flight`}</span>
+        </div>
+        <div className="es-section-scroll">
+          {needs.map((w) => (
+            <div className="es-wait-row" key={w.id}>
+              <span className="brain-live" />
+              <span className="es-wait-copy">{w.say ?? w.title}</span>
+              <span className="es-pill s-draft">needs you</span>
+            </div>
+          ))}
+
+          {active.map((s) => (
+            <button type="button" className="es-row is-open" key={s.id} onClick={() => onOpen(s)}>
+              <span className="es-row-t">{s.subject}</span>
+              <span className="es-row-m">
+                {s.when} · {s.audience.toLowerCase()}
+              </span>
+              <span className={`es-pill s-${s.state}`}>{s.state}</span>
+            </button>
+          ))}
+
+          {page?.sequences.length ? (
+            <>
+              <div className="es-label es-sec-sub">Running without you</div>
+              {page.sequences.map((q) => (
+                <div className="es-row" key={q.id}>
+                  <span className="es-row-t">{q.name}</span>
+                  <span className="es-row-m">
+                    {q.trigger} · {q.stat}
+                  </span>
+                  <span className={`es-pill s-${q.state}`}>{q.state}</span>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {!loading && !error && !active.length && !page?.sequences.length ? (
+            <p className="es-empty">Nothing running. The first {nouns.one} is one button away.</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="es-section">
+        <div className="es-section-head">
+          <h3>Past campaigns</h3>
+          <span>{nouns.metric}, against your best</span>
+        </div>
+        <div className="es-section-scroll">
+          {past.map((s) => (
+            <button type="button" className="es-send is-open" key={s.id} onClick={() => onOpen(s)}>
+              <span className="es-send-top">
+                <span className="es-row-t">{s.subject}</span>
+                <span className="es-send-o">{pct(s.openRate)}</span>
+              </span>
+              <span className="es-bar">
+                <span style={{ width: `${(s.openRate / best) * 100}%` }} />
+              </span>
+              <span className="es-row-m">
+                {s.when} · {s.sent} out · {s.replies} {s.replies === 1 ? 'reply' : 'replies'}
+              </span>
+            </button>
+          ))}
+          {!loading && !past.length ? <p className="es-empty">Nothing has gone out yet.</p> : null}
+        </div>
+      </section>
+    </>
+  );
+}

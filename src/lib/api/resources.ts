@@ -34,7 +34,10 @@ export async function completeOnboarding(sid: string, answers: Record<string, st
 /* A direction is one job inside a floor, not a floor of its own: it has a
    page and you can fly into it, but the API has no /surfaces/{id} for it.
    One map so the link, the prefetch and the flight all agree. */
-export const DIRECTION_HREF: Record<string, string> = { email: '/marketing/email' };
+export const DIRECTION_HREF: Record<string, string> = {
+  email: '/marketing/email',
+  whatsapp: '/marketing/whatsapp',
+};
 export const isDirection = (id: string) => id in DIRECTION_HREF;
 
 /** where a surface lives — the workspace is the root, services are slugs.

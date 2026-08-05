@@ -1,13 +1,15 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { BrainCanvas } from '@/components/BrainCanvas';
 import { DotPage } from '@/components/workspace/DotPage';
 import { useTimers } from '@/lib/hooks';
 import { prefersReducedMotion } from '@/lib/spring';
-import { takeLaunch } from '@/components/surface/launch';
-import { GROUPS, branchTints, type BrainHandle, type NodeSpec, type OpenNodeInfo } from '@/lib/brain';
+import { markLaunch, takeLaunch } from '@/components/surface/launch';
+import { branchTints, type BrainHandle, type NodeSpec, type OpenNodeInfo } from '@/lib/brain';
 import type { Idea } from '@/lib/email-campaign';
+import { channelAccent, type Channel } from '@/lib/channels';
 import type { WorkItem } from '@/lib/api/types';
 
 /* ============================================================
@@ -24,12 +26,14 @@ import type { WorkItem } from '@/lib/api/types';
    ============================================================ */
 
 export function IdeaBrain({
+  channel,
   ideas,
   work,
   loading,
   onWrite,
   onReady,
 }: {
+  channel: Channel;
   ideas: Idea[];
   work: WorkItem[];
   loading: boolean;
@@ -37,15 +41,30 @@ export function IdeaBrain({
   onWrite: (idea: Idea) => void;
   onReady?: (h: BrainHandle) => void;
 }) {
+  const router = useRouter();
   const brainRef = useRef<BrainHandle | null>(null);
   const introFor = useRef<BrainHandle | null>(null);
   const [dot, setDot] = useState<OpenNodeInfo | null>(null);
+  const flying = useRef(false);
   const { after, clearAll } = useTimers();
 
-  // email's own hue — the fourth tint of the marketing floor, the one the
-  // direction wears everywhere else
-  const accent = useMemo(() => branchTints(GROUPS.marketing).b4, []);
+  // the direction's own hue — its tint on the marketing floor, the one it
+  // wears everywhere else
+  const accent = useMemo(() => channelAccent(channel), [channel]);
   const tints = useMemo(() => branchTints(accent), [accent]);
+
+  /* the cord below goes somewhere: tapping marketing dives out of this
+     direction and back up to the floor, the same flight in reverse */
+  const leave = useCallback(() => {
+    if (flying.current) return;
+    flying.current = true;
+    const go = () => {
+      markLaunch('marketing');
+      router.push('/marketing');
+    };
+    if (brainRef.current) brainRef.current.launchInto('marketing', go);
+    else go();
+  }, [router]);
 
   /* marketing (tier 0) — email (tier 1, the anchor) — a thought per idea
      (tier 2) — what each one is made of (tier 3). Everything but the cord
@@ -53,7 +72,7 @@ export function IdeaBrain({
   const nodes = useMemo<NodeSpec[]>(() => {
     const out: NodeSpec[] = [
       { id: 'marketing', label: 'Marketing', tier: 0, group: 'marketing', surface: 'marketing' },
-      { id: 'email', label: 'Email', tier: 1, group: 'email', parent: 'marketing' },
+      { id: channel.id, label: channel.label, tier: 1, group: channel.id, parent: 'marketing' },
     ];
     ideas.forEach((idea, i) => {
       const tint = `b${(i % 8) + 1}`;
@@ -62,7 +81,7 @@ export function IdeaBrain({
         label: idea.label,
         tier: 2,
         group: tint,
-        parent: 'email',
+        parent: channel.id,
         hidden: true,
         work: idea.work,
         // an idea nobody has started is drawn faintly — that IS its status
@@ -81,7 +100,7 @@ export function IdeaBrain({
       );
     });
     return out;
-  }, [ideas]);
+  }, [channel, ideas]);
 
   /* a tapped dot reports its parent by LABEL, not id (that's what the sheet
      shows), so a thought's details have to be findable both ways */
@@ -105,8 +124,8 @@ export function IdeaBrain({
       }
 
       h.setThoughts(false);
-      const flew = takeLaunch('email');
-      if (flew) h.arriveInto('email');
+      const flew = takeLaunch(channel.id);
+      if (flew) h.arriveInto(channel.id);
       else h.frame(null, 1, true);
 
       const start = flew ? 220 : 420;
@@ -125,7 +144,7 @@ export function IdeaBrain({
       );
       after(leafAt + leaves.length * 32 + 400, () => h.setThoughts(true));
     },
-    [after, clearAll, nodes],
+    [after, channel.id, clearAll, nodes],
   );
 
   const closeDot = useCallback(() => {
@@ -149,7 +168,7 @@ export function IdeaBrain({
         options={{
           nodes,
           layout: 'spray',
-          anchorId: 'email',
+          anchorId: channel.id,
           revealed: true,
           accent,
           groupColors: tints,
@@ -159,11 +178,12 @@ export function IdeaBrain({
           radii: { 0: 5.6, 1: 8.2, 2: 4.6, 3: 2.9 },
           isLive: (n) => !!n.work && work.some((w) => w.id === n.work && w.status === 'needs-you'),
           onOpenNode: setDot,
+          onLaunch: leave,
         }}
       >
         <div className="brain-head">
           <span className="brain-title">
-            <span className="brain-live" /> The brain · email
+            <span className="brain-live" /> The brain · {channel.label.toLowerCase()}
           </span>
           <span className="brain-side">
             <span className="brain-sub">
@@ -183,11 +203,11 @@ export function IdeaBrain({
         // the button is the door into the conversation, whatever was tapped
         ctaFor={(n) => (ideaOf(n) ? 'Write this campaign →' : 'Talk to Allya about this →')}
         deepLink={(n) =>
-          n.id === 'email'
+          n.id === channel.id
             ? {
                 href: '/marketing',
                 label: 'Back to marketing',
-                note: 'this is one of its eight directions — the cord below is the same brain',
+                note: 'this is one of its directions — the cord below is the same brain',
               }
             : null
         }

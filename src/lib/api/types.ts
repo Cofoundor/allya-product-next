@@ -182,6 +182,40 @@ export interface Send {
   openRate: number;
   replies: number;
   state: 'sent' | 'scheduled' | 'draft';
+  /** what it actually said — a paragraph per entry */
+  body: string[];
+  ps: string | null;
+  /** what it did, in its own words */
+  outcome: string | null;
+}
+
+export interface Score {
+  id: string;
+  label: string;
+  /** each channel says it its own way: "94", "Green", "1,000 / day" */
+  value: string;
+  state: 'good' | 'watch' | 'bad';
+  note: string;
+}
+
+/** whether the channel itself is in good standing — deliverability for
+    email, Meta's quality rating for WhatsApp */
+export interface Health {
+  title: string;
+  blurb: string;
+  scores: Score[];
+  warmup: Progress | null;
+  updates: string[];
+}
+
+/** a channel's own words, so one page can serve both without either
+    having to speak the other's language */
+export interface Nouns {
+  one: string;
+  many: string;
+  metric: string;
+  automations: string;
+  audienceWord: string;
 }
 
 export interface Sequence {
@@ -193,6 +227,8 @@ export interface Sequence {
   stat: string;
 }
 
+/** A channel you can run campaigns on. Email was the first; WhatsApp is the
+    same shape with its own words, its own health and its own limits. */
 export interface EmailPage {
   id: string;
   surfaceId: string;
@@ -205,7 +241,12 @@ export interface EmailPage {
   sends: Send[];
   sequences: Sequence[];
   notes: string[];
+  health: Health | null;
+  nouns: Nouns | null;
 }
+
+/** the name the page goes by now that it serves more than email */
+export type ChannelPage = EmailPage;
 
 /** everything the sign-in page renders, graph included */
 export interface Gate {

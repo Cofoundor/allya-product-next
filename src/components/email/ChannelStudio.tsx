@@ -3,12 +3,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { paths } from '@/lib/api/resources';
 import { useResource } from '@/lib/api/useResource';
-import { GROUPS, branchTints } from '@/lib/brain';
 import { Transcript } from '@/components/Transcript';
 import { Composer } from '@/components/workspace/Composer';
 import { BrandCrumbs } from '@/components/workspace/Crumbs';
 import { AccountPill } from '@/components/surface/AccountPill';
 import { useInterview } from '@/lib/useInterview';
+import { channelAccent, channelOf, NOUNS_FALLBACK } from '@/lib/channels';
 import {
   composeCampaign,
   ideasFrom,
@@ -17,40 +17,47 @@ import {
   type Campaign,
   type Idea,
 } from '@/lib/email-campaign';
-import type { EmailPage, WorkList } from '@/lib/api/types';
+import type { ChannelPage, Send, WorkList } from '@/lib/api/types';
 import { IdeaBrain } from './IdeaBrain';
 import { CampaignDraft } from './CampaignDraft';
 import { CampaignInputs } from './CampaignInputs';
-import { OngoingCampaigns } from './OngoingCampaigns';
+import { CampaignPane } from './CampaignPane';
+import { CampaignSheet } from './CampaignSheet';
+import { HealthBox, KnowBox, KpiBoxes } from './ChannelBoxes';
 
 /* ============================================================
-   Email marketing — one direction, opened all the way up.
+   A channel, opened all the way up.
 
-   Same shell as a floor, because it is one level of the same building:
-   the brain in the canvas, the conversation behind it, everything in
-   flight down the right-hand pane. Touch a thought, read what it is,
-   and the button at the bottom of that box drops you into the
-   conversation with the thought already in Allya's hands.
+   One page for email and WhatsApp both: the brain for this direction, the
+   numbers under it, what Allya knows and whether the channel can reach
+   anyone at all — then the conversation that writes a campaign, and the
+   pane of everything running and everything that already ran.
+
+   Nothing here is channel-specific except the config it's handed and the
+   words the API sends with the data.
    ============================================================ */
 
-export default function EmailStudio() {
-  const pageRes = useResource<EmailPage>(paths.direction('email'));
+export default function ChannelStudio({ channelId }: { channelId: string }) {
+  const channel = channelOf(channelId);
+  const pageRes = useResource<ChannelPage>(paths.direction(channelId));
   const workRes = useResource<WorkList>(paths.work('marketing'));
 
   const [answers, setAnswers] = useState<Answers>({});
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [engaged, setEngaged] = useState(false);
+  const [open, setOpen] = useState<Send | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const page = pageRes.data ?? null;
-  const accent = useMemo(() => branchTints(GROUPS.marketing).b4, []);
+  const nouns = page?.nouns ?? NOUNS_FALLBACK;
+  const accent = useMemo(() => channelAccent(channel), [channel]);
   const ideas = useMemo(() => ideasFrom(page), [page]);
   const work = useMemo(
     () =>
       (workRes.data?.items ?? []).filter(
-        (w) => /email|newsletter|warm|list/i.test(`${w.title ?? ''} ${w.say ?? ''}`) || w.id === page?.awaiting,
+        (w) => w.id === page?.awaiting || channel.workRe.test(`${w.title ?? ''} ${w.say ?? ''}`),
       ),
-    [workRes.data, page?.awaiting],
+    [workRes.data, page?.awaiting, channel],
   );
 
   const onProgress = useCallback((a: Answers) => {
@@ -69,15 +76,21 @@ export default function EmailStudio() {
   const interview = useInterview({ page, onProgress, onDone });
   const { start } = interview;
 
-  /* a thought's box hands the campaign over: the canvas steps back and the
-     conversation takes the pane, already knowing what the thought knew */
-  const writeFrom = useCallback(
-    (idea: Idea) => {
+  /* a thought's box, or the button in the pane: both open the conversation
+     with however much is already known */
+  const write = useCallback(
+    (from?: { label: string; acc?: Answers }) => {
+      setOpen(null);
       setEngaged(true);
-      start({ label: idea.label, acc: idea.seed ? { point: idea.seed } : {} });
+      start(from);
       inputRef.current?.focus();
     },
     [start],
+  );
+
+  const writeFrom = useCallback(
+    (idea: Idea) => write({ label: idea.label, acc: idea.seed ? { point: idea.seed } : {} }),
+    [write],
   );
 
   /** re-ask one question, keeping every other answer */
@@ -85,10 +98,9 @@ export default function EmailStudio() {
     (key: AnswerKey) => {
       const acc = { ...answers };
       delete acc[key];
-      setEngaged(true);
-      start({ label: 'Changing one answer', acc });
+      write({ label: 'Changing one answer', acc });
     },
-    [answers, start],
+    [answers, write],
   );
 
   const retry = useCallback(() => {
@@ -106,7 +118,7 @@ export default function EmailStudio() {
           trail={[
             { label: 'Company', href: '/' },
             { label: 'Marketing', href: '/marketing' },
-            { label: page?.label ?? 'Email' },
+            { label: page?.label ?? channel.label },
           ]}
         />
         <div className="spacer" />
@@ -115,7 +127,7 @@ export default function EmailStudio() {
           <span>
             {pageRes.error
               ? 'Server unreachable'
-              : `${running} sequence${running === 1 ? '' : 's'} running${
+              : `${running} ${running === 1 ? nouns.automations.replace(/s$/, '') : nouns.automations} running${
                   needs.length ? ` · ${needs.length} needs you` : ''
                 }`}
           </span>
@@ -127,9 +139,7 @@ export default function EmailStudio() {
         <section className={`pane-chat${engaged ? ' engaged' : ''}`} aria-label="Conversation with Allya">
           <div className="canvas">
             <div className="canvas-inner svc-inner">
-              <p className="canvas-greet">
-                {page?.blurb ?? 'The channel you own. Nobody can throttle it, so it has to be worth opening.'}
-              </p>
+              <p className="canvas-greet">{page?.blurb ?? ' '}</p>
 
               {pageRes.error ? (
                 <div className="c-sec brain-box brain-tall brain-down">
@@ -141,20 +151,21 @@ export default function EmailStudio() {
                   </p>
                 </div>
               ) : (
-                <IdeaBrain ideas={ideas} work={work} loading={pageRes.loading} onWrite={writeFrom} />
+                <IdeaBrain
+                  channel={channel}
+                  ideas={ideas}
+                  work={work}
+                  loading={pageRes.loading}
+                  onWrite={writeFrom}
+                />
               )}
 
-              {page?.stats.length ? (
-                <section className="c-sec es-stats">
-                  {page.stats.map((s) => (
-                    <div className="es-stat" key={s.id}>
-                      <b>{s.value}</b>
-                      <span className="l">{s.label}</span>
-                      {s.delta ? <span className="d">{s.delta}</span> : null}
-                    </div>
-                  ))}
-                </section>
-              ) : null}
+              <KpiBoxes stats={page?.stats ?? []} />
+
+              <div className="es-pair">
+                <KnowBox title={channel.knowTitle} notes={page?.notes ?? []} />
+                <HealthBox health={page?.health ?? null} />
+              </div>
 
               <CampaignInputs answers={answers} page={page} onChange={changeAnswer} />
 
@@ -174,7 +185,6 @@ export default function EmailStudio() {
                 if (c.kind === 'starter') {
                   const el = inputRef.current;
                   if (el) {
-                    // React owns this input; go through its own setter
                     const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
                     set?.call(el, c.text);
                     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -187,12 +197,7 @@ export default function EmailStudio() {
             }))}
             onChip={(c) => c.act()}
           >
-            <div className="day-mark">Today · email</div>
-            {campaign ? null : (
-              <div className="es-thread-note">
-                {interview.started ? null : 'Five questions and you have a campaign.'}
-              </div>
-            )}
+            <div className="day-mark">Today · {channel.label.toLowerCase()}</div>
           </Transcript>
 
           {campaign ? (
@@ -216,30 +221,26 @@ export default function EmailStudio() {
               setEngaged(false);
               inputRef.current?.blur();
             }}
-            suggestions={page ? ['Write next week’s newsletter', 'Win back the quiet ones', 'A plain send, from me'] : []}
-            placeholder={interview.asking ? 'Answer in your own words…' : 'Direct Allya — what should this one say?'}
+            suggestions={channel.suggestions}
+            placeholder={interview.asking ? 'Answer in your own words…' : channel.placeholder}
           />
         </section>
 
-        <aside className="pane-work" aria-label="Campaigns">
-          <div className="work-head">
-            <h2>Campaigns</h2>
-            <span className="split-note">
-              {page?.sends.length ?? 0} sends · {page?.sequences.length ?? 0} sequences
-            </span>
-          </div>
-          <div className="es-pane-scroll">
-            <OngoingCampaigns
-              page={page}
-              work={work}
-              loading={pageRes.loading}
-              error={!!pageRes.error}
-              onRetry={retry}
-              bare
-            />
-          </div>
+        <aside className="pane-work es-pane" aria-label="Campaigns">
+          <CampaignPane
+            page={page}
+            work={work}
+            nouns={nouns}
+            loading={pageRes.loading}
+            error={!!pageRes.error}
+            onCreate={() => write()}
+            onOpen={setOpen}
+            onRetry={retry}
+          />
         </aside>
       </main>
+
+      <CampaignSheet send={open} nouns={nouns} onClose={() => setOpen(null)} />
     </div>
   );
 }

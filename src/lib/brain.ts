@@ -449,11 +449,14 @@ export function createBrain(canvas: HTMLCanvasElement, box: HTMLElement, opts: B
       if (!a) return;
 
       a.hx = cx;
-      a.hy = H * 0.8;
+      a.hy = H * 0.78;
       const root = a.parent ? nodeById[a.parent] : null;
       if (root) {
         root.hx = cx;
-        root.hy = H * 0.975;
+        /* not flush with the edge: the root is the way back up, so it has
+           to be a dot you can actually hit. Half of it hanging out of the
+           box made the cord look right and the tap impossible. */
+        root.hy = H * 0.94;
       }
 
       const branches = nodes.filter((n) => n.parent === a.id);
