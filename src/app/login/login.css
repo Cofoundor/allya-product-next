@@ -12,12 +12,7 @@
    ============================================================ */
 
 /* the brain, thinking behind everything */
-.login-brain { position: fixed; inset: 0; z-index: 0; }
-.login-brain canvas {
-  display: block; width: 100%; height: 100%;
-  touch-action: none; cursor: grab;
-}
-.login-brain canvas:active { cursor: grabbing; }
+#brain { position: fixed; inset: 0; z-index: 0; display: block; }
 
 .gate {
   position: fixed; inset: 0; z-index: 1;
@@ -47,7 +42,7 @@
 
 .gate .mark {
   display: inline-flex; align-items: center; gap: 9px;
-  font-size: 15px; font-weight: 550; letter-spacing: -0.01em;
+  font-size: 15px; font-weight: 500; letter-spacing: -0.01em;
   color: var(--fg);
   margin-bottom: 26px;
 }
@@ -97,7 +92,7 @@
   appearance: none; border: none; cursor: pointer;
   background: var(--accent); color: var(--on-accent);
   border-radius: 12px; padding: 13px 18px;
-  font-family: var(--sans); font-size: 14.5px; font-weight: 550;
+  font-family: var(--sans); font-size: 14.5px; font-weight: 600;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease),
               transform var(--dur) var(--ease);

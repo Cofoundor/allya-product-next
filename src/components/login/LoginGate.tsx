@@ -2,15 +2,31 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { BrainCanvas } from '@/components/BrainCanvas';
+import GateBrain from '@/components/login/GateBrain';
 import { paths } from '@/lib/api/resources';
 import { useResource } from '@/lib/api/useResource';
 import { signIn } from '@/lib/api/session';
 import { ApiError } from '@/lib/api/client';
 import type { Gate } from '@/lib/api/types';
-import type { NodeSpec } from '@/lib/brain';
+import { GATE_COPY, GATE_LINKS, GATE_NODES } from '@/lib/gate-fallback';
 
 type Status = { kind: 'idle' } | { kind: 'busy'; msg: string } | { kind: 'error'; msg: string };
+
+/* The vanilla gate italicises the company name inside the headline; the
+   headline arrives as one flat string, so the accent is put back here. */
+function accent(text: string) {
+  return text.split('ZeroTo10').flatMap((part, i) =>
+    i === 0 ? [part] : [<em key={i}>ZeroTo10</em>, part],
+  );
+}
+
+/* …and it breaks the footnote after the first sentence, which likewise
+   arrives as one string. 'ZeroTo10.ai' has no space after its dot, so the
+   seam is the first '. ' — the same place the vanilla <br> sits. */
+function footLines(text: string): [string, string?] {
+  const at = text.indexOf('. ');
+  return at === -1 ? [text] : [text.slice(0, at + 1), text.slice(at + 2)];
+}
 
 /* The gate: the company brain drifting full-bleed behind a dark well, with
    the sign-in form sitting in the quiet middle of it. The brain stays
@@ -27,6 +43,9 @@ export default function LoginGate() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
   const busy = status.kind === 'busy';
+  /* the gate is the way in — it stands whole whether or not /gate answers */
+  const copy = gate.data ?? GATE_COPY;
+  const [footHead, footTail] = footLines(copy.footnote);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -58,19 +77,15 @@ export default function LoginGate() {
 
   return (
     <>
-      {/* the gate still stands if the graph can't be fetched — it's the way in */}
-      {gate.data ? (
-        <BrainCanvas
-          boxClassName="login-brain"
-          options={{
-            nodes: gate.data.brain.nodes as NodeSpec[],
-            cross: gate.data.brain.links,
-            layout: gate.data.brain.layout,
-            revealed: true,
-            thoughtEvery: 2.8,
-          }}
+      {/* the engine reads its graph once at mount, so this waits for the fetch
+          to settle and then draws it — from /gate, or from the copy of the
+          same graph that ships with the bundle */}
+      {gate.loading ? null : (
+        <GateBrain
+          nodes={gate.data ? gate.data.brain.nodes : GATE_NODES}
+          cross={gate.data ? gate.data.brain.links : GATE_LINKS}
         />
-      ) : null}
+      )}
 
       <main className="gate">
         <div className="gate-inner rise-in">
@@ -80,13 +95,8 @@ export default function LoginGate() {
             <span className="pill">preview</span>
           </div>
 
-          <h1 className="gate-title">
-            {gate.data ? gate.data.headline : 'Welcome back to ZeroTo10.'}
-          </h1>
-          <p className="gate-lede">
-            {gate.data?.lede ??
-              'Sign in and Allya picks up where you left off — the work in flight, the decisions waiting on you, the whole company map.'}
-          </p>
+          <h1 className="gate-title">{accent(copy.headline)}</h1>
+          <p className="gate-lede">{copy.lede}</p>
 
           <form className="gate-form" onSubmit={onSubmit} noValidate>
             <div className="gate-stack">
@@ -142,12 +152,12 @@ export default function LoginGate() {
           </div>
 
           <p className="gate-foot">
-            {gate.data?.footnote ?? 'We’re currently rolling out ZeroTo10.ai to selected users.'}{' '}
-            {gate.data ? (
-              <a href={gate.data.footnoteLinkHref} target="_blank" rel="noopener noreferrer">
-                {gate.data.footnoteLinkLabel}
-              </a>
-            ) : null}
+            {footHead}
+            {footTail === undefined ? ' ' : <br />}
+            {footTail}{' '}
+            <a href={copy.footnoteLinkHref} target="_blank" rel="noopener noreferrer">
+              {copy.footnoteLinkLabel}
+            </a>
             .
           </p>
         </div>
