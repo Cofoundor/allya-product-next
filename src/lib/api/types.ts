@@ -145,6 +145,8 @@ export interface InstrumentItem {
   value: number;
   state: string;
   meta: string;
+  /** who this dot is, when it stands for people — what makes it openable */
+  personIds: string[];
 }
 
 export interface Instrument {
@@ -178,7 +180,11 @@ export interface Send {
   id: string;
   subject: string;
   when: string;
+  /** how the campaign says it out loud: "Signups who never opened" */
   audience: string;
+  /** what that sentence resolves to. The audience stays prose because that's
+      how a founder thinks about it; this is who actually gets the thing. */
+  segmentId: string | null;
   sent: number;
   openRate: number;
   replies: number;
@@ -219,6 +225,8 @@ export interface ChannelUi {
   brainSubtitle: string;
   backLabel: string;
   backHref: string;
+  /** the lenses this page can be looked at through, when it has more than one */
+  views?: ViewOption[];
 }
 
 /** a direction with a room of its own: which dots on a floor's brain are
@@ -258,7 +266,19 @@ export interface DraftCampaign {
 export interface IdeaMove {
   id: string;
   label: string;
+  /** empty on a brain thought; on a person, who can take this — an agent,
+      an expert, or you. A move nobody can take is a label, and a page full
+      of labels is a dashboard. */
+  does: TouchBy[];
+  /** how it reads in the work list once dispatched */
+  workTitle: string;
+  /** how it reads on your plate when you keep it */
+  ownTitle: string;
 }
+
+/** the backend calls this `Move` and hands it back anywhere something offers
+    you a next step — a thought on a brain, a person you've just opened */
+export type Move = IdeaMove;
 
 /** a thought on the channel's brain */
 export interface Idea {
@@ -306,6 +326,7 @@ export interface Sequence {
   trigger: string;
   state: 'live' | 'off' | 'draft';
   audience: string;
+  segmentId: string | null;
   stat: string;
 }
 
@@ -352,6 +373,10 @@ export interface WorkItem {
   title: string | null;
   meta: string | null;
   undoable: boolean;
+  /** who this is about. "CRM cleanup — merging 41 stale leads" is a claim
+      about 41 records, and it should be openable, not only readable. */
+  personId: string | null;
+  segmentId: string | null;
 }
 
 export interface WorkSummary {
@@ -429,6 +454,8 @@ export interface Fact {
   flagged: boolean;
   mismatch: boolean;
   source: string;
+  /** the person this is a fact about, when it's about one */
+  personId: string | null;
 }
 
 export interface FactList {
@@ -468,6 +495,9 @@ export interface CalendarEvent {
   origin: Origin;
   pill: string | null;
   workId: string | null;
+  /** who it's with. "Pipeline review — the 7 worth a call" is a meeting
+      about seven people, and the grid should be able to open them. */
+  personIds: string[];
 }
 
 export interface CalendarDay {
@@ -503,4 +533,431 @@ export interface WorkAction {
   item: WorkItem;
   toast: string;
   reply: Reply;
+}
+
+/* ---- the people layer ----
+   One record, whatever someone is to you. A journalist, a candidate and a
+   lead are the same object with a different kind — which is what lets PR,
+   hiring and sales stop keeping three lists of the same humans. */
+
+export type PersonKind =
+  | 'customer'
+  | 'prospect'
+  | 'journalist'
+  | 'candidate'
+  | 'investor'
+  | 'partner';
+
+export type TouchKind =
+  | 'signup'
+  | 'email'
+  | 'whatsapp'
+  | 'call'
+  | 'meeting'
+  | 'payment'
+  | 'churn'
+  | 'note'
+  | 'press'
+  | 'application'
+  | 'stage'
+  | 'import';
+
+/** wider than Origin: on a person's timeline the founder's own moves belong
+    next to the agent's, in the same grammar TrailRow already uses */
+export type TouchBy = 'agent' | 'expert' | 'you';
+
+export type Warmth = 'warm' | 'cooling' | 'cold' | 'never';
+export type DealState = 'open' | 'won' | 'lost';
+export type SourceState = 'connected' | 'available' | 'error';
+
+export interface Stage {
+  id: string;
+  label: string;
+  /** the lane index the instruments already encode with */
+  at: number;
+  kind: 'open' | 'won' | 'lost' | 'dormant';
+  note: string;
+}
+
+/** the sales funnel, the hiring ladder and the press radar are this, with
+    different stages and different geometry. `counts` arrives derived. */
+export interface Pipeline {
+  id: string;
+  label: string;
+  personKind: PersonKind;
+  surfaceId: string;
+  geometry: 'funnel' | 'ladder' | 'radar';
+  /** what the geometry measures — the axis, not the tally */
+  unit: string;
+  /** what one row in a stage is called. Not the same thing: the press radar
+      is measured in days and counted in people. */
+  countNoun: string;
+  stages: Stage[];
+  counts: Record<string, number>;
+  value: number | null;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  domain: string | null;
+  size: string | null;
+  industry: string | null;
+  stageId: string | null;
+  peopleCount: number;
+  value: number | null;
+  note: string;
+}
+
+export interface Deal {
+  id: string;
+  personId: string | null;
+  companyId: string | null;
+  title: string;
+  value: number;
+  currency: string;
+  pipelineId: string;
+  stageId: string;
+  state: DealState;
+  opened: string;
+  expectedClose: string | null;
+  workId: string | null;
+  note: string;
+}
+
+/** one thing that happened to one person — the journey's atom. `text` is
+    already said the way it reads; nothing here composes a sentence. */
+export interface Touch {
+  id: string;
+  personId: string;
+  at: number;
+  kind: TouchKind;
+  by: TouchBy;
+  text: string;
+  who: string | null;
+  channel: string | null;
+  workId: string | null;
+  campaignId: string | null;
+  directionId: string | null;
+  surfaceId: string | null;
+}
+
+export interface StageChange {
+  at: number;
+  fromId: string | null;
+  toId: string;
+  by: TouchBy;
+  note: string;
+}
+
+export interface Journey {
+  personId: string;
+  name: string;
+  touches: Touch[];
+  stages: StageChange[];
+  opened: string;
+  note: string;
+}
+
+/** where someone came from, at the grain a founder decides on. Not "the
+    site" — which post, which story, whose referral. */
+export type Channel =
+  | 'site'
+  | 'email'
+  | 'whatsapp'
+  | 'press'
+  | 'social'
+  | 'referral'
+  | 'job-boards'
+  | 'csv'
+  | 'direct';
+
+export interface TouchPoint {
+  at: number;
+  channel: Channel;
+  /** the answer written out — "The SurferSearcher story" */
+  said: string;
+  campaignId: string | null;
+  directionId: string | null;
+  surfaceId: string | null;
+}
+
+/** first touch answers "where do leads come from"; last touch answers the
+    more expensive question — what actually closes them */
+export interface Attribution {
+  first: TouchPoint | null;
+  last: TouchPoint | null;
+  path: TouchPoint[];
+  convertedAt: number | null;
+  daysToConvert: number | null;
+  note: string;
+}
+
+/** one thing worth doing now, and the move that does it. A founder opening
+    a book of a hundred strangers needs a decision, not a report. */
+export interface Prompt {
+  id: string;
+  personId: string | null;
+  name: string;
+  /** why this one, in her voice */
+  why: string;
+  moveId: string | null;
+  moveLabel: string;
+  does: TouchBy[];
+  urgency: 'late' | 'today' | 'soon' | 'idea';
+}
+
+/** one door in, and what came through it. `rate` is the number a founder
+    decides on — the channel that brings the most rarely converts best.
+    Named OriginStat because `Origin` already means agent-or-expert. */
+export interface OriginStat {
+  id: Channel;
+  said: string;
+  count: number;
+  worth: number;
+  paying: number;
+  rate: number;
+}
+
+/** something owed, and when by. A contact list says who exists; this is
+    what makes it a CRM — it can go overdue. */
+export interface Followup {
+  id: string;
+  personId: string;
+  what: string;
+  /** YYYY-MM-DD */
+  due: string;
+  by: TouchBy;
+  state: 'open' | 'done' | 'snoozed';
+  created: string;
+  workId: string | null;
+}
+
+/** what taking a move produced: a work item if it was dispatched, a
+    follow-up if you kept it */
+export interface MoveResult {
+  work: WorkItem | null;
+  followup: Followup | null;
+  touch: Touch;
+  toast: string;
+}
+
+export interface Person {
+  id: string;
+  name: string;
+  kinds: PersonKind[];
+  email: string | null;
+  phone: string | null;
+  handle: string | null;
+  companyId: string | null;
+  pipelineId: string;
+  stageId: string;
+  warmth: Warmth;
+  source: string;
+  /** who has been working them — the 85/15 seam, on the customer record */
+  owner: TouchBy;
+  tags: string[];
+  value: number | null;
+  created: string;
+  lastTouchAt: number | null;
+  /** Allya's one-line read, in her voice */
+  note: string;
+  /** what brought them, short enough for a row */
+  originSaid: string;
+  originChannel: Channel | null;
+  /** what's owed and when — derived from the open follow-ups, so a list can
+      be sorted by who's actually late without opening anybody */
+  nextStep: string | null;
+  nextDue: string | null;
+  overdue: boolean;
+}
+
+export interface PersonDetail extends Person {
+  company: Company | null;
+  deals: Deal[];
+  touches: Touch[];
+  segments: string[];
+  facts: string[];
+  next: Move[];
+  attribution: Attribution;
+  followups: Followup[];
+}
+
+/** a person as a row in the grid. The record alone doesn't carry what a
+    column needs — a company's name, what's on the table, how many times
+    anyone has spoken to them — and a request per row is not an answer. */
+export interface PersonRow extends Person {
+  companyName: string;
+  companySize: string;
+  companyIndustry: string;
+  /** what they appear to be after — an inference, never shown without its
+      reason, because a read a founder can't check is one they shouldn't trust */
+  intent: string;
+  intentWhy: string;
+  /** money still open against them, across every deal */
+  openValue: number;
+  dealCount: number;
+  segmentLabels: string[];
+  touchCount: number;
+  /** the most recent thing that happened, in its own words */
+  lastSaid: string;
+  daysInStage: number | null;
+  /** who owes the next step, when something is owed */
+  nextBy: TouchBy | null;
+}
+
+/** one lens on the book — the header switch is drawn from these */
+export interface ViewOption {
+  id: string;
+  label: string;
+  note: string;
+}
+
+/** One column the grid can show. `key` names a field on a person row, which
+    is what lets the client render a column it has never heard of. Width is
+    absent on purpose: how wide a column sits on a screen is the client's
+    business, not the contract's. */
+export interface TableColumn {
+  key: string;
+  label: string;
+  group: string;
+  on: boolean;
+  num: boolean;
+  wide: boolean;
+}
+
+/** a named set of columns — per-user saved views replace this list without
+    the client changing */
+export interface TablePreset {
+  id: string;
+  label: string;
+  note: string;
+  keys: string[];
+}
+
+export interface TableSpec {
+  columns: TableColumn[];
+  presets: TablePreset[];
+  groups: string[];
+}
+
+export interface WarmthWord {
+  id: Warmth;
+  /** how it reads in a column: "this week" */
+  said: string;
+  /** the same fact with room to breathe, for a record: "spoken to this week" */
+  saidFull: string;
+  /** warmest first — sorting reads this rather than inventing an order */
+  rank: number;
+}
+
+export interface DispatchWord {
+  id: TouchBy;
+  verb: string;
+  note: string;
+}
+
+/** The words the interface puts on this API's enums. Every one of these used
+    to be a constant in a component, which is how the warmth vocabulary ended
+    up spelled three different ways on three different screens. */
+export interface Lexicon {
+  warmth: WarmthWord[];
+  touchKinds: Record<string, string>;
+  urgency: Record<string, string>;
+  dispatch: DispatchWord[];
+  experts: Record<string, string>;
+}
+
+export interface PersonList {
+  people: PersonRow[];
+  total: number;
+  cursor: string | null;
+  caption: string;
+}
+
+export interface SegmentRule {
+  /** a hand-picked list rather than a rule. Every CRM has both, and they
+      answer different questions: a rule stays true as people move, a list
+      stays exactly who you chose. Set this and nothing else applies. */
+  personIds: string[];
+  kinds: PersonKind[];
+  stageIds: string[];
+  warmth: Warmth[];
+  tags: string[];
+  sources: string[];
+  notTouchedDays: number | null;
+  touchedKind: TouchKind | null;
+  neverKind: TouchKind | null;
+}
+
+/** what `audience` used to be a sentence about */
+export interface Segment {
+  id: string;
+  label: string;
+  rule: SegmentRule;
+  count: number;
+  live: boolean;
+  note: string;
+}
+
+export interface DupeRow {
+  row: number;
+  incoming: string;
+  existingId: string;
+  existing: string;
+  matchedOn: 'email' | 'phone' | 'handle' | 'name';
+  keep: string;
+}
+
+export interface ImportPreview {
+  columns: string[];
+  /** column heading -> the field we think it is */
+  mapping: Record<string, string>;
+  rowsTotal: number;
+  rowsReady: number;
+  duplicates: DupeRow[];
+  problems: string[];
+  sample: Record<string, string>[];
+}
+
+export interface ImportResult {
+  added: number;
+  merged: number;
+  skipped: number;
+  segmentId: string | null;
+  learned: string[];
+}
+
+export interface IngestResult {
+  personId: string;
+  created: boolean;
+  touchId: string;
+  stageId: string;
+  note: string;
+}
+
+export interface Source {
+  id: string;
+  label: string;
+  state: SourceState;
+  blurb: string;
+  lastSync: string | null;
+  count: number | null;
+  note: string;
+}
+
+/** the layer, dressed. Same shape as a channel page on purpose. */
+export interface CrmPage {
+  id: string;
+  label: string;
+  blurb: string;
+  stats: Stat[];
+  progress: Progress | null;
+  awaiting: string | null;
+  pipelines: Pipeline[];
+  segments: Segment[];
+  sources: Source[];
+  notes: string[];
+  nouns: Nouns;
+  ui: ChannelUi;
 }

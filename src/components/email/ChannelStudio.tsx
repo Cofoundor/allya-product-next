@@ -9,6 +9,8 @@ import { Composer } from '@/components/workspace/Composer';
 import { BrandCrumbs } from '@/components/workspace/Crumbs';
 import { AccountPill } from '@/components/surface/AccountPill';
 import { useInterview } from '@/lib/useInterview';
+import { PersonSheet } from '@/components/crm/PersonSheet';
+import { PersonSheetProvider } from '@/lib/crm/personSheet';
 import type {
   AnswerKey,
   Answers,
@@ -34,7 +36,7 @@ import { HealthBox, KnowBox, KpiBoxes } from './ChannelBoxes';
    backend for a real one and nothing in here moves.
    ============================================================ */
 
-export default function ChannelStudio({ channelId }: { channelId: string }) {
+function Studio({ channelId }: { channelId: string }) {
   const pageRes = useResource<ChannelPage>(paths.direction(channelId));
   const listRes = useResource<Send[]>(paths.campaigns(channelId));
   const ideasRes = useResource<Idea[]>(paths.ideas(channelId));
@@ -274,6 +276,17 @@ export default function ChannelStudio({ channelId }: { channelId: string }) {
         nouns={page?.nouns ?? null}
         onClose={() => setOpenId(null)}
       />
+      {/* a campaign's audience is a real group of people, and opening one of
+          them shouldn't take you off the campaign you were reading */}
+      <PersonSheet />
     </div>
+  );
+}
+
+export default function ChannelStudio({ channelId }: { channelId: string }) {
+  return (
+    <PersonSheetProvider>
+      <Studio channelId={channelId} />
+    </PersonSheetProvider>
   );
 }

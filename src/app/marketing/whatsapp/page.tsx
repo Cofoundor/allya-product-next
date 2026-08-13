@@ -3,6 +3,7 @@ import ChannelStudio from '@/components/email/ChannelStudio';
 import '../../workspace.css';
 import '../../surface.css';
 import '../email/studio.css';
+import '../../people/crm.css';
 
 /* The same room, a different channel: templates Meta has to approve, a
    number that carries a quality rating, and a daily limit you earn. */

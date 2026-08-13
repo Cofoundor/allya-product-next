@@ -1,0 +1,1336 @@
+/* ============================================================
+   The people layer.
+
+   Sits on top of workspace.css, surface.css and the channel studio's
+   sheet — this file only adds what a book of people needs that a book of
+   campaigns didn't: the map, the rows, and the record.
+
+   Everything here is prefixed pl- so it can never collide with the
+   studio classes it borrows.
+   ============================================================ */
+
+/* ---- which pipeline you're looking at ---- */
+
+.pl-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.pl-tab {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--fg-faint);
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.pl-tab:hover { color: var(--fg-soft); border-color: rgba(255, 255, 255, 0.16); }
+.pl-tab.is-on {
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* ---- which lens, in the chrome ----
+   A segmented control in the topbar, between the status line and the account
+   pill. Sized to sit on the same baseline as both. */
+
+.pl-views {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin-left: 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.pl-view {
+  border: 0;
+  background: transparent;
+  color: var(--fg-faint);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.pl-view:hover { color: var(--fg-soft); }
+.pl-view.is-on {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+/* ---- the map ---- */
+
+.pl-map {
+  background: rgba(255, 255, 255, 0.022);
+  border: 1px solid var(--hairline);
+  border-radius: 15px;
+  padding: 16px 19px 15px;
+  margin-bottom: 12px;
+}
+.pl-map.is-loading { min-height: 220px; display: grid; place-items: stretch; }
+.pl-map-sk { height: 190px; border-radius: 12px; }
+
+.pl-map-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pl-map-head h2 { margin: 0; font-size: 13.5px; font-weight: 500; letter-spacing: -0.01em; }
+.pl-map-head span { font-size: 11.5px; color: var(--fg-faint); text-align: right; }
+
+.pl-map-cap {
+  margin: 13px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fg-faint);
+  text-wrap: balance;
+}
+
+/* the bands. A stage is a row you can press, so the shape and the filter
+   are the same control rather than a picture with a menu beside it. */
+.pl-bands { display: grid; gap: 5px; }
+
+.pl-band {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color var(--dur) var(--ease);
+}
+.pl-band-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 10px;
+  transition: width 0.4s var(--ease), background var(--dur) var(--ease);
+}
+.pl-band:hover .pl-band-fill { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+.pl-band.is-on { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.pl-band.is-on .pl-band-fill { background: color-mix(in srgb, var(--accent) 34%, transparent); }
+.pl-band.is-empty .pl-band-fill { background: rgba(255, 255, 255, 0.04); }
+/* the stage that means money in the bank reads warmer than the rest */
+.pl-band.st-won .pl-band-fill { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.pl-band.st-dormant .pl-band-fill { background: rgba(255, 255, 255, 0.05); }
+
+.pl-band-l { position: relative; font-size: 13px; }
+.pl-band-n { position: relative; font-size: 13px; font-weight: 500; color: var(--fg); font-variant-numeric: tabular-nums; }
+.pl-band.is-empty .pl-band-l,
+.pl-band.is-empty .pl-band-n { color: var(--fg-faint); }
+
+/* the radar: distance from the middle is how long since you spoke */
+.pl-radar { position: relative; height: 230px; }
+.pl-radar-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pl-ring { fill: none; stroke: rgba(255, 255, 255, 0.07); }
+.pl-ring-t {
+  fill: var(--fg-faint);
+  font-size: 7px;
+  text-anchor: middle;
+  font-family: 'Inter Tight', system-ui, sans-serif;
+}
+.pl-radar-dots { position: absolute; inset: 0; }
+.pl-dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.pl-dot-o {
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 62%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent);
+  transition: transform var(--dur) var(--ease);
+}
+.pl-dot:hover .pl-dot-o { transform: scale(1.12); }
+.pl-dot.is-on .pl-dot-o { box-shadow: 0 0 0 2px #fff, 0 0 16px color-mix(in srgb, var(--accent) 60%, transparent); }
+.pl-dot.is-empty .pl-dot-o { background: rgba(255, 255, 255, 0.13); box-shadow: none; }
+.pl-dot-l { font-size: 10.5px; color: var(--fg-faint); white-space: nowrap; }
+.pl-dot-l b { color: var(--fg-soft); font-weight: 500; }
+.pl-dot.is-on .pl-dot-l { color: var(--fg); }
+
+.pl-through { color: var(--fg-faint); font-weight: 400; }
+
+/* ---- where they came from ----
+   The bar is the conversion rate, not the volume. If it were volume the
+   biggest channel would always look like the best one, which is the exact
+   mistake a flat source count makes. */
+
+.pl-origins {
+  background: rgba(255, 255, 255, 0.022);
+  border: 1px solid var(--hairline);
+  border-radius: 15px;
+  padding: 15px 18px 16px;
+  margin-bottom: 12px;
+}
+.pl-origins-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pl-origins-head h3 { margin: 0; font-size: 13px; font-weight: 500; }
+.pl-origins-head span { font-size: 11px; color: var(--fg-faint); text-align: right; }
+
+.pl-origin-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 7px;
+}
+.pl-origin {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 10px 12px 11px;
+  border: 1px solid var(--hairline);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.pl-origin:hover { border-color: rgba(255, 255, 255, 0.18); }
+.pl-origin.is-on {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.pl-origin-t {
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.pl-origin-n { font-size: 17px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.pl-origin-bar {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.pl-origin-bar span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.pl-origin-r { font-size: 10.5px; color: var(--fg-faint); }
+
+/* ---- the pane ---- */
+
+/* the caption can run long ("40 in worth a call"), so it needs room to sit
+   beside the heading rather than against it */
+.pl-head-row { gap: 12px; }
+.pl-head-row .split-note { text-align: right; line-height: 1.35; }
+
+.pl-actions { display: flex; gap: 8px; }
+.pl-actions .es-create { flex: 1; }
+.pl-ghost {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--fg-soft);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.pl-ghost:hover { color: var(--fg); border-color: rgba(255, 255, 255, 0.18); }
+
+/* the segments are the audiences marketing writes against — they belong
+   where the people are, not only inside the campaign interview.
+
+   Capped and scrolling: a dozen of these wrap to four rows and eat the pane
+   the list is supposed to live in. Chrome doesn't get to starve content. */
+.pl-segs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  flex: none;
+  max-height: 76px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* and the three buckets always keep enough room to show a row or two, so
+   "Needs you" can never render as a header with nothing under it */
+.pl-section { min-height: 118px; }
+.pl-seg {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--fg-faint);
+  font: inherit;
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.pl-seg b { color: var(--fg-soft); font-weight: 500; margin-left: 3px; }
+.pl-seg:hover { color: var(--fg-soft); border-color: rgba(255, 255, 255, 0.16); }
+.pl-seg.is-on {
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.pl-seg.is-read { cursor: default; }
+.pl-segs.is-read { margin-top: 4px; }
+
+.pl-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.pl-row:hover { background: rgba(255, 255, 255, 0.035); }
+.pl-row-body { min-width: 0; display: grid; gap: 2px; }
+.pl-row-t { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-row-m {
+  font-size: 11.5px;
+  color: var(--fg-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* what's owed outranks what Allya thinks of them — a queue is only a queue
+   if the next thing is the thing you read first */
+.pl-due {
+  color: var(--fg-soft);
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.pl-due.is-late { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.pl-row.is-late .pl-av { border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
+.pl-row-src {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  white-space: nowrap;
+}
+.pl-section.t-late .es-section-head h3 { color: var(--danger); }
+
+/* warmth is the only thing a face carries — how long since anyone spoke */
+.pl-av {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+}
+.pl-av.w-warm {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.pl-av.w-cooling { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.pl-av.w-cold { color: var(--fg-faint); }
+.pl-av.w-never { color: var(--fg-faint); border-style: dashed; border-color: var(--hairline); }
+.pl-av.lg { width: 46px; height: 46px; font-size: 14px; }
+
+/* ---- accounts ---- */
+
+.pl-back { align-self: start; padding: 8px 14px; }
+
+.pl-co { border-bottom: 1px solid var(--hairline); padding-bottom: 8px; margin-bottom: 8px; }
+.pl-co:last-child { border-bottom: 0; }
+.pl-co-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.pl-co-head:hover { background: rgba(255, 255, 255, 0.035); }
+.pl-co-body { min-width: 0; display: grid; gap: 2px; }
+.pl-co-n { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.pl-co-nil { color: var(--fg-faint); font-weight: 400; }
+.pl-co-note {
+  margin: 0 10px 4px;
+  font-size: 11.5px;
+  color: var(--fg-faint);
+  line-height: 1.5;
+}
+.pl-co-people {
+  display: grid;
+  gap: 2px;
+  margin: 4px 10px 0;
+  padding-left: 10px;
+  border-left: 1px solid var(--hairline);
+}
+
+.pl-more {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px dashed var(--hairline);
+  background: transparent;
+  color: var(--fg-faint);
+  font: inherit;
+  font-size: 12px;
+  padding: 9px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.pl-more:hover { color: var(--fg-soft); }
+
+/* ---- the record ---- */
+
+.pl-sheet-layer .dot-sheet { max-width: 620px; }
+.pl-head { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+.pl-head-copy { min-width: 0; }
+.pl-head .dot-title { margin: 0; }
+.pl-head .dot-blurb { margin-top: 4px; }
+
+/* Allya's read on them, in her voice — so it's set in her face */
+.pl-read {
+  font-family: var(--serif, 'Fraunces', Georgia, serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fg-soft);
+  margin: 15px 0 0;
+  padding-left: 13px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  text-wrap: balance;
+}
+
+.pl-stages { display: flex; flex-wrap: wrap; gap: 5px; }
+.pl-stage {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--fg-faint);
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.pl-stage:hover:not(:disabled) { color: var(--fg-soft); border-color: rgba(255, 255, 255, 0.18); }
+.pl-stage:disabled { cursor: default; opacity: 0.6; }
+.pl-stage.is-on {
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.pl-stage-note { margin: 9px 0 0; font-size: 12px; color: var(--fg-faint); line-height: 1.5; }
+
+.pl-facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; }
+.pl-fact { display: grid; gap: 2px; }
+.pl-fact .k { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-faint); }
+.pl-fact .v { font-size: 13px; color: var(--fg-soft); }
+
+.pl-deal {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--hairline);
+  border-left: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+.pl-deal.s-won { border-left-color: var(--accent); }
+.pl-deal.s-lost { border-left-color: var(--fg-faint); opacity: 0.7; }
+.pl-deal-t { font-size: 13px; }
+.pl-deal-v { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.pl-deal-m { grid-column: 1 / -1; font-size: 11.5px; color: var(--fg-faint); line-height: 1.45; }
+
+/* ---- moves you can actually take ----
+   These were <span>s. That was the whole problem: a page listing what you
+   could do, with no way to do any of it. */
+
+.pl-moves { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.pl-move-wrap { position: relative; display: inline-block; }
+.pl-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.pl-move:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.pl-move:disabled { opacity: 0.55; cursor: default; }
+.pl-move-by {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+.pl-move-wrap.is-open .pl-move { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+
+/* the fork the product turns on: dispatch it, or keep it */
+.pl-move-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 5px);
+  left: 0;
+  min-width: 210px;
+  display: grid;
+  gap: 2px;
+  padding: 5px;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 11px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.pl-move-opt {
+  display: grid;
+  gap: 1px;
+  text-align: left;
+  font: inherit;
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+.pl-move-opt:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); }
+.pl-move-opt-t { font-size: 12.5px; }
+.pl-move-opt-n { font-size: 11px; color: var(--fg-faint); line-height: 1.4; }
+
+.pl-toast {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--fg-soft);
+  line-height: 1.5;
+  padding-left: 11px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* ---- what's owed ---- */
+
+.pl-owed { display: grid; gap: 6px; }
+.pl-owe {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-left: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 10px;
+}
+.pl-owe.is-late { border-left-color: var(--danger); }
+.pl-owe-t { font-size: 12.5px; }
+.pl-owe-d { font-size: 11px; color: var(--fg-faint); text-align: right; }
+.pl-owe.is-late .pl-owe-d { color: var(--danger); }
+.pl-owe-acts { grid-column: 1 / -1; display: flex; gap: 6px; margin-top: 4px; }
+.pl-owe-acts button {
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--fg-soft);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.pl-owe-acts button:hover:not(:disabled) { color: var(--fg); border-color: rgba(255, 255, 255, 0.2); }
+.pl-owe-acts button:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- how they got here ---- */
+
+.pl-attr-note {
+  margin: 0 0 11px;
+  font-size: 13px;
+  color: var(--fg-soft);
+  line-height: 1.55;
+  text-wrap: balance;
+}
+.pl-path { list-style: none; margin: 0; padding: 0 0 0 13px; display: grid; gap: 8px; border-left: 1px solid var(--hairline); }
+.pl-path-step { position: relative; display: grid; gap: 1px; }
+.pl-path-step::before {
+  content: '';
+  position: absolute;
+  left: -17px;
+  top: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+.pl-path-step.is-first::before { background: var(--accent); }
+.pl-path-step.is-last::before { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.pl-path-ch { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--fg-faint); }
+.pl-path-t { font-size: 12.5px; color: var(--fg-soft); line-height: 1.45; }
+
+.pl-note-row { display: flex; gap: 8px; margin: 4px 0 14px; }
+.pl-note-in {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+}
+.pl-note-in::placeholder { color: var(--fg-faint); }
+
+/* ---- the journey ---- */
+
+.pl-journey { display: grid; gap: 14px; }
+.pl-day-mark {
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  margin-bottom: 7px;
+}
+.pl-t-kind {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  margin-right: 7px;
+}
+.pl-t-who { color: var(--fg-faint); }
+
+/* ---- a campaign's audience, opened ----
+   Shown inside the campaign sheet on the marketing floor, which is the
+   whole point: the audience was always a real group of people, and now
+   you can read them without leaving what you were reading. */
+
+.pl-aud {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--fg-soft);
+  cursor: pointer;
+  border-bottom: 1px dashed var(--hairline);
+}
+.pl-aud:hover { color: var(--fg); border-bottom-color: var(--accent); }
+.pl-aud-caret { font-size: 9px; margin-left: 4px; color: var(--fg-faint); }
+
+.pl-roster {
+  display: grid;
+  gap: 2px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 11px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.pl-roster-head {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  margin-bottom: 4px;
+}
+.pl-roster-row {
+  display: grid;
+  gap: 1px;
+  border: 0;
+  background: none;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-align: left;
+  font: inherit;
+  color: var(--fg);
+  cursor: pointer;
+}
+.pl-roster-row:hover { background: rgba(255, 255, 255, 0.04); }
+.pl-roster-n { font-size: 12.5px; }
+.pl-roster-m {
+  font-size: 11px;
+  color: var(--fg-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pl-roster-more { font-size: 11px; color: var(--fg-faint); padding: 5px 8px; }
+
+/* ---- getting people in ---- */
+
+.pl-import .dot-sheet,
+.pl-import { max-width: 560px; }
+.pl-form { display: grid; gap: 11px; margin: 16px 0; }
+.pl-field { display: grid; gap: 5px; }
+.pl-field span { font-size: 11.5px; color: var(--fg-faint); }
+.pl-field input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+}
+.pl-field input::placeholder { color: var(--fg-faint); }
+
+.pl-drop {
+  display: block;
+  margin: 16px 0 10px;
+  border: 1px dashed var(--hairline);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--fg-soft);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.pl-drop:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--fg); }
+.pl-drop input { display: none; }
+
+.pl-paste {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.pl-paste::placeholder { color: var(--fg-faint); }
+
+.pl-err { margin: 10px 0 0; font-size: 12.5px; color: var(--danger); line-height: 1.5; }
+
+.pl-map-cols { display: flex; flex-wrap: wrap; gap: 6px; }
+.pl-col {
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+  padding: 6px 10px;
+}
+.pl-col .k { font-size: 12px; color: var(--fg-soft); }
+.pl-col .v { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-faint); }
+
+.pl-dupes { display: grid; gap: 5px; max-height: 210px; overflow-y: auto; }
+.pl-dupe {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  padding: 8px 11px;
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+}
+.pl-dupe-r { font-size: 10.5px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.pl-dupe-t { font-size: 12.5px; }
+.pl-dupe-t b { font-weight: 500; }
+.pl-dupe-m { grid-column: 1 / -1; font-size: 11px; color: var(--fg-faint); }
+
+/* ============================================================
+   The table — the second lens on the book
+
+   Takes the whole width, because a column you have to scroll sideways to
+   reach is a column you don't read. The map is still what the layer opens
+   on; this is what you switch to when the question has a column in it.
+   ============================================================ */
+
+/* the grid gets the room the two panes were splitting, and more of it than
+   the 1240px the conversation is capped at — columns need width */
+.workspace.is-table { max-width: 1600px; }
+/* the whole chain has to be shrinkable, not just the innermost box */
+.workspace.is-table > * { min-width: 0; }
+
+.pl-tbl-wrap {
+  flex: 1; min-height: 0; min-width: 0;
+  display: flex; flex-direction: column;
+  padding: 18px 24px 16px;
+}
+
+.pl-tbl-head {
+  flex: none;
+  display: flex; align-items: center; gap: 16px;
+  padding-bottom: 12px;
+}
+.pl-tbl-title { min-width: 0; }
+.pl-tbl-title h2 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
+.pl-tbl-title span {
+  display: block; margin-top: 2px;
+  font-size: 11.5px; color: var(--fg-faint);
+}
+
+.pl-tbl-find { flex: 1; min-width: 0; max-width: 380px; margin-left: auto; }
+.pl-tbl-find input {
+  width: 100%;
+  padding: 7px 11px;
+  font: inherit; font-size: 12.5px;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+}
+.pl-tbl-find input::placeholder { color: var(--fg-faint); }
+.pl-tbl-find input:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.pl-tbl-acts { flex: none; display: flex; gap: 8px; }
+
+/* `min-width: 0` is what makes this scroll at all. A flex item's automatic
+   minimum size is its content's min-content width, so left at `auto` this box
+   refused to shrink below the full width of the table: the workspace overflowed
+   to 1724px inside a 1280px window, and because body clips overflow-x, every
+   column past the fold was unreachable — no scrollbar, no way to get to it. */
+.pl-tbl-scroll {
+  flex: 1; min-height: 0; min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+}
+
+/* `fixed` is the whole difference between this table and a slow one. Left to
+   `auto`, the browser measures every cell in every row to decide how wide a
+   column should be — with a dozen columns of prose that was 44ms per layout,
+   and a layout runs on every hover, sort, selection and keystroke. The
+   widths come from the column definitions, so nothing needs measuring. */
+.pl-tbl {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate; border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.pl-tbl thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--panel);
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  padding: 0;
+  white-space: nowrap;
+}
+.pl-tbl thead th button {
+  width: 100%;
+  display: flex; align-items: center; gap: 4px;
+  padding: 9px 12px;
+  font: inherit; font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--fg-faint);
+  background: none; border: 0; cursor: pointer;
+}
+.pl-tbl thead th button:hover { color: var(--fg-soft); }
+.pl-tbl thead th[aria-sort='ascending'] button,
+.pl-tbl thead th[aria-sort='descending'] button { color: var(--fg); }
+.pl-tbl thead th:not(:has(button)) {
+  padding: 9px 12px;
+  font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 400;
+  color: var(--fg-faint);
+}
+.pl-tbl-caret { font-size: 9px; }
+
+.pl-tbl tbody tr:hover td { background: var(--raised); }
+.pl-tbl tbody tr.is-late .pl-tbl-name button { color: var(--danger); }
+.pl-tbl tbody tr.is-open td { background: var(--raised); }
+
+/* the two control columns: pick a row, or open it where it sits */
+.pl-tbl-pickcol,
+.pl-tbl-expcol { width: 1%; padding-left: 10px !important; padding-right: 4px !important; }
+.pl-tbl-pickcol input { accent-color: var(--accent); cursor: pointer; }
+.pl-tbl-exp {
+  border: 0;
+  background: none;
+  color: var(--fg-faint);
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.pl-tbl-exp:hover { color: var(--fg); background: rgba(255, 255, 255, 0.06); }
+
+.pl-tbl td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--fg-soft);
+  vertical-align: top;
+  white-space: nowrap;
+  /* the column's width is now the truth, so anything longer is clipped
+     rather than allowed to push the grid wider */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-tbl td.is-num { text-align: right; font-variant-numeric: tabular-nums; }
+.pl-tbl th.is-num button { justify-content: flex-end; }
+/* min/max-width are what `auto` layout needed to guess with. The colgroup
+   states the width outright now, so these would only fight it. */
+.pl-tbl td.is-wide,
+.pl-tbl th.is-wide { white-space: normal; }
+
+/* the name stays put when the columns run off the right, because a row you
+   can't identify is a row you can't read */
+.pl-tbl-name {
+  position: sticky; left: 0; z-index: 1;
+  background: var(--bg);
+  border-right: 1px solid var(--hairline);
+  min-width: 190px;
+}
+.pl-tbl tbody tr:hover .pl-tbl-name { background: var(--raised); }
+.pl-tbl-name b { display: block; font-weight: 500; color: var(--fg); }
+.pl-tbl-name button {
+  display: block;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 500;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+.pl-tbl-name button:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+.pl-tbl-name span { display: block; font-size: 11px; color: var(--fg-faint); }
+
+.pl-tbl-stage { display: block; color: var(--fg); }
+.pl-tbl-sub { display: block; font-size: 11px; color: var(--fg-faint); }
+.pl-tbl-none { color: var(--fg-faint); }
+.pl-tbl-note { color: var(--fg-faint); line-height: 1.45; }
+
+/* the read reads like a fact; the evidence under it reads like a footnote,
+   which is the honest weighting for something inferred */
+.pl-tbl-intent { display: block; color: var(--fg); line-height: 1.35; }
+
+.pl-tbl-w { color: var(--fg-soft); }
+.pl-tbl-w.w-warm { color: var(--accent); }
+.pl-tbl-w.w-cold,
+.pl-tbl-w.w-never { color: var(--fg-faint); }
+
+.pl-tbl-empty { margin: 0; padding: 28px 14px; text-align: center; font-size: 12.5px; color: var(--fg-faint); }
+
+/* ============================================================
+   Start here — what to do now.
+
+   The decision comes before the data. A founder who opens a hundred rows
+   has been handed a report and asked to do the editing themselves, which
+   is the job they came here to stop doing.
+   ============================================================ */
+
+/* min-width: 0 for the same reason as .pl-tbl-scroll — every flex item
+   between the workspace and the table has to be allowed to shrink, or the
+   widest cell in the grid decides how wide the page is */
+.pl-desk { display: flex; flex-direction: column; min-height: 0; min-width: 0; flex: 1; }
+
+.sh { flex: none; padding: 16px 18px 0; }
+.sh-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+.sh-head h2 { margin: 0; font-size: 14px; font-weight: 500; letter-spacing: -0.01em; }
+.sh-head span { font-size: 11.5px; color: var(--fg-faint); }
+
+.sh-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); gap: 10px; }
+.sh-card {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  padding: 13px 15px 14px;
+  border: 1px solid var(--hairline);
+  border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.022);
+}
+/* urgency is a stripe, not a colour-coded rainbow: late is the only one
+   that gets to shout */
+.sh-card.u-late { border-left-color: var(--danger); }
+.sh-card.u-idea { border-left-color: var(--hairline); }
+
+.sh-when {
+  font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--fg-faint);
+}
+.sh-card.u-late .sh-when { color: var(--danger); }
+.sh-who {
+  justify-self: start;
+  border: 0; background: none; padding: 0; font: inherit;
+  font-size: 15px; font-weight: 500; color: var(--fg); cursor: pointer; text-align: left;
+}
+.sh-who:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+
+/* Allya's read on why this one — her voice, so her face */
+.sh-why {
+  margin: 0;
+  font-family: var(--serif, 'Fraunces', Georgia, serif);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--fg-soft);
+  text-wrap: balance;
+}
+
+.sh-do { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.sh-go {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: inherit; font-size: 12px; color: var(--on-accent, #0a0a0a);
+  background: var(--accent); border: 1px solid var(--accent);
+  border-radius: 999px; padding: 6px 13px; cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.sh-go:hover:not(:disabled) { background: var(--accent-glow, #9ad6a6); }
+.sh-go span { font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.7; }
+.sh-mine {
+  font: inherit; font-size: 12px; color: var(--fg-soft);
+  background: transparent; border: 1px solid var(--hairline);
+  border-radius: 999px; padding: 6px 13px; cursor: pointer;
+}
+.sh-mine:hover:not(:disabled) { color: var(--fg); border-color: rgba(255, 255, 255, 0.22); }
+.sh-go:disabled, .sh-mine:disabled { opacity: 0.55; cursor: default; }
+
+.sh-done {
+  margin: 11px 0 0; font-size: 12.5px; color: var(--fg-soft);
+  padding-left: 11px; border-left: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.sh-clear { padding: 16px 18px 0; }
+.sh-clear p {
+  margin: 0; padding: 13px 16px;
+  border: 1px solid var(--hairline); border-radius: 12px;
+  font-size: 13px; color: var(--fg-soft); line-height: 1.55; text-wrap: balance;
+}
+.sh-clear b { color: var(--fg); font-weight: 500; }
+
+/* ---- day one ----
+   The state this will be in the first time anybody opens it, which is the
+   one state a seeded demo never shows you. */
+
+.pl-first { padding: 34px 18px 40px; max-width: 780px; margin: 0 auto; text-align: center; }
+.pl-first h3 { margin: 0 0 8px; font-size: 17px; font-weight: 500; letter-spacing: -0.01em; }
+.pl-first-lede {
+  margin: 0 auto 22px; max-width: 52ch;
+  font-size: 13.5px; line-height: 1.6; color: var(--fg-soft); text-wrap: balance;
+}
+.pl-doors { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; text-align: left; }
+.pl-door {
+  display: grid; gap: 6px; align-content: start;
+  padding: 15px 16px 16px;
+  border: 1px solid var(--hairline); border-radius: 12px;
+  background: transparent; color: var(--fg); font: inherit; cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.pl-door:hover:not(.is-quiet) {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.pl-door b { font-size: 13px; font-weight: 500; }
+.pl-door span { font-size: 12px; line-height: 1.55; color: var(--fg-faint); }
+/* already true, so it isn't a button — nothing to press */
+.pl-door.is-quiet { cursor: default; border-style: dashed; }
+.pl-door.is-quiet b { color: var(--fg-soft); }
+
+/* ---- stages, said as a pill ---- */
+.pl-stage-pill {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  color: var(--fg-soft);
+}
+.pl-stage-pill.s-paying, .pl-stage-pill.s-d-won, .pl-stage-pill.s-joined {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.pl-stage-pill.s-worth-a-call, .pl-stage-pill.s-your-call {
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.pl-stage-pill.s-churned { color: var(--fg-faint); border-style: dashed; }
+
+/* ---- presets ---- */
+.pl-presets { grid-column: 1 / -1; display: grid; gap: 5px; padding-bottom: 10px; border-bottom: 1px solid var(--hairline); }
+.pl-preset {
+  display: grid; gap: 1px; text-align: left;
+  border: 1px solid transparent; border-radius: 9px;
+  background: transparent; font: inherit; color: var(--fg);
+  padding: 7px 10px; cursor: pointer;
+}
+.pl-preset:hover { background: rgba(255, 255, 255, 0.04); }
+.pl-preset.is-on {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+.pl-preset b { font-size: 12.5px; font-weight: 500; }
+.pl-preset span { font-size: 11px; color: var(--fg-faint); }
+
+/* ---- one page at a time ----
+   Twenty-two columns across two hundred rows is four thousand cells, and a
+   browser asked to lay that out on every sort stops being a browser. */
+
+.pl-pager {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 2px 0;
+  margin-top: 10px;
+  border-top: 1px solid var(--hairline);
+  font-size: 12px;
+  color: var(--fg-faint);
+}
+.pl-pager-n { font-variant-numeric: tabular-nums; }
+.pl-pager-per { display: inline-flex; align-items: center; gap: 6px; }
+.pl-pager-per select {
+  background: transparent;
+  color: var(--fg-soft);
+  border: 1px solid var(--hairline);
+  border-radius: 7px;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 12px;
+}
+.pl-pager-nav { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.pl-pager-nav span { color: var(--fg-soft); font-variant-numeric: tabular-nums; padding: 0 6px; }
+.pl-pager-nav button {
+  font: inherit;
+  font-size: 12px;
+  color: var(--fg-soft);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 7px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.pl-pager-nav button:hover:not(:disabled) { color: var(--fg); border-color: rgba(255, 255, 255, 0.2); }
+.pl-pager-nav button:disabled { opacity: 0.35; cursor: default; }
+
+.pl-tbl-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; max-width: 260px; }
+.pl-tbl-chips span {
+  font-size: 10.5px;
+  color: var(--fg-faint);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.pl-tbl-toast {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--fg-soft);
+  padding-left: 11px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* ---- which columns show ----
+   Twenty-two of them and no screen that fits them all, so the founder
+   decides. The name isn't in the choice: a row you can't identify is a row
+   you can't read. */
+
+.pl-colpick { position: relative; display: inline-block; }
+.pl-colpick .pl-ghost b { color: var(--fg); font-weight: 500; margin-left: 4px; }
+.pl-colmenu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 460px;
+  max-height: 60vh;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 13px 15px;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  text-align: left;
+}
+.pl-colgrp { display: grid; gap: 3px; align-content: start; }
+.pl-colgrp-t {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  margin-bottom: 2px;
+}
+.pl-colgrp label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--fg-soft);
+  cursor: pointer;
+  padding: 2px 0;
+}
+.pl-colgrp label:hover { color: var(--fg); }
+.pl-colgrp label.is-fixed { color: var(--fg-faint); cursor: default; }
+.pl-colgrp input { accent-color: var(--accent); }
+
+/* ---- acting on many at once ---- */
+
+.pl-bulk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 11px;
+  padding: 9px 13px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 11px;
+}
+.pl-bulk-n { font-size: 12.5px; color: var(--fg); margin-right: 4px; }
+.pl-bulk button {
+  font: inherit;
+  font-size: 12px;
+  color: var(--fg-soft);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.pl-bulk button:hover:not(:disabled) { color: var(--fg); border-color: rgba(255, 255, 255, 0.22); }
+.pl-bulk button:disabled { opacity: 0.5; cursor: default; }
+.pl-bulk-x { margin-left: auto; }
+
+/* ---- a row, opened where it sits ---- */
+
+.pl-tbl-detail td {
+  white-space: normal;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  padding: 16px 18px 18px;
+}
+.pl-rd {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+.pl-rd-col { display: grid; gap: 5px; align-content: start; min-width: 0; }
+.pl-rd-col h4 {
+  margin: 0 0 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  font-weight: 500;
+}
+.pl-rd-col h4 ~ h4 { margin-top: 10px; }
+.pl-rd-dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; }
+.pl-rd-dl dt { font-size: 11px; color: var(--fg-faint); }
+.pl-rd-dl dd { margin: 0; font-size: 12.5px; color: var(--fg-soft); overflow-wrap: anywhere; }
+.pl-rd-line {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--fg-soft);
+  line-height: 1.5;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.pl-rd-line b { color: var(--fg); font-weight: 500; flex: none; }
+.pl-rd-line span { color: var(--fg-faint); }
+.pl-rd-line .t-dot { flex: none; align-self: center; }
+.pl-rd-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.pl-rd-tags span {
+  font-size: 10.5px;
+  color: var(--fg-faint);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.pl-rd-moves { display: flex; flex-wrap: wrap; gap: 5px; }
+.pl-rd-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+}
+.pl-rd-move:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.pl-rd-move:disabled { opacity: 0.55; cursor: default; }
+.pl-rd-move span {
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+.pl-rd-open { margin-top: 10px; justify-self: start; }
+
+@media (max-width: 900px) {
+  .pl-tbl-wrap { padding: 14px 12px; }
+  .pl-tbl-head { flex-wrap: wrap; gap: 10px; }
+  .pl-tbl-find { max-width: none; margin-left: 0; order: 3; flex-basis: 100%; }
+  .pl-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .pl-tab { white-space: nowrap; }
+  .pl-radar { height: 190px; }
+  .pl-facts { gap: 8px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-band-fill { transition: none; }
+  .pl-dot-o { transition: none; }
+}

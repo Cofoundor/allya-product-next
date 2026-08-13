@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useReducedMotion } from '@/lib/hooks';
 import { paths } from '@/lib/api/resources';
 import { useResource } from '@/lib/api/useResource';
+import { SegmentRoster } from '@/components/crm/SegmentRoster';
 import type { CampaignDetail, Nouns } from '@/lib/api/types';
 
 /* ============================================================
@@ -82,7 +83,7 @@ export function CampaignSheet({
             <>
           <h1 className="dot-title">{send.subject}</h1>
           <p className="dot-blurb">
-            {send.when} · to {send.audience.toLowerCase()}
+            {send.when} · <SegmentRoster segmentId={send.segmentId} audience={send.audience} />
           </p>
 
           {/* what's worth showing is the channel's call: a draft has an

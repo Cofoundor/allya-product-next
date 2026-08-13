@@ -11,7 +11,13 @@ import type { SurfaceSummary } from '@/lib/api/types';
    is whatever the backend says exists — adding a service there adds it here.
    Click-outside and Escape close it; wherever you are is marked. */
 
-const EXTRA = [{ href: '/onboarding', label: 'Onboarding', note: 'build your company brain' }];
+/* The people layer isn't a floor, so it isn't in /surfaces — but it's the
+   book every floor reads from, and a founder shouldn't have to go through
+   sales to reach it. */
+const EXTRA = [
+  { href: '/people', label: 'People', note: 'everyone, and every touch' },
+  { href: '/onboarding', label: 'Onboarding', note: 'build your company brain' },
+];
 
 export function PagePicker() {
   const [open, setOpen] = useState(false);
