@@ -114,6 +114,22 @@ button { font-family: inherit; color: inherit; }
 .brand-home:hover { background: var(--raised); border-color: var(--hairline); }
 .brand-home:active { background: color-mix(in srgb, var(--accent) 10%, var(--raised)); }
 
+/* Back sits before the lamp, because it is the thing you reach for without
+   reading. Same pill language as the onboarding flows' own back link. */
+.crumb-back {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  padding: 4px 10px 4px 8px; margin-right: 2px; border-radius: 999px;
+  font-size: 12px; color: var(--fg-faint); text-decoration: none;
+  border: 1px solid var(--hairline); background: rgba(255, 255, 255, 0.03);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.crumb-back:hover {
+  color: var(--fg); border-color: var(--hairline-strong);
+  background: rgba(255, 255, 255, 0.06);
+}
+.crumb-back:active { background: color-mix(in srgb, var(--accent) 10%, var(--raised)); }
+
 .crumbs { display: flex; align-items: center; gap: 7px; min-width: 0; margin-left: 2px; font-size: 12.5px; font-weight: 400; }
 .crumb { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .crumb-sep { color: var(--hairline-strong); }
@@ -129,6 +145,13 @@ button { font-family: inherit; color: inherit; }
 @media (max-width: 640px) {
   .crumbs .crumb:not(:last-child) { display: none; }
   .crumbs .crumb:last-child .crumb-sep { display: none; }
+  /* the levels between are gone, so back is now the only way up a step —
+     it keeps its target and loses only the word */
+  .crumb-back { padding: 4px 7px; position: relative; }
+  .crumb-back span { display: none; }
+  /* the pill shrinks to 29px, which is not a thumb. Grow the hit area
+     instead of the pill — and not rightward, or it eats the lamp's edge. */
+  .crumb-back::after { content: ""; position: absolute; inset: -9px -2px -9px -9px; }
 }
 
 /* ============================================================

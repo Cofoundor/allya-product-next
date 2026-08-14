@@ -15,6 +15,22 @@ export function ArrowIcon({ size }: { size?: number }) {
   );
 }
 
+/* Back, one level up. Unlike ArrowIcon this inherits its colour, because it
+   sits on the page's own surface rather than on an accent button. */
+export function BackIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" width={size} height={size} aria-hidden="true">
+      <path
+        d="M15 5l-7 7 7 7"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /* An intrinsic size matters here: an <svg> with no width/height stretches to
    fill whatever box it lands in, which is how this turned into a 100px tick
    in the onboarding ledger. Callers can still size it up. */

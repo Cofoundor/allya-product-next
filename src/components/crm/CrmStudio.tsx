@@ -137,7 +137,19 @@ export default function CrmStudio({
   return (
     <div className="app is-service" style={{ ['--accent' as string]: accent }}>
       <header className="topbar">
-        <BrandCrumbs trail={[{ label: 'Company', href: '/' }, { label: 'People' }]} />
+        {/* the trail follows the URL, not the lens you switch to inside it —
+            /people/companies is its own place, the grid toggle is not */}
+        <BrandCrumbs
+          trail={
+            lens === 'companies'
+              ? [
+                  { label: 'Company', href: '/' },
+                  { label: 'People', href: '/people' },
+                  { label: 'Companies' },
+                ]
+              : [{ label: 'Company', href: '/' }, { label: 'People' }]
+          }
+        />
         <div className="spacer" />
         <div className="status-line">
           <span className={`pulse${down ? ' off' : ''}`} />
