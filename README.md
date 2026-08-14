@@ -29,6 +29,21 @@ The base URL comes from `NEXT_PUBLIC_API_URL` (see `.env.example`). With the API
 pane shows its own offline state and one "try again" brings the whole page back — but there
 is no data without it. `npm run build && npm start` for production.
 
+### The second backend
+
+`/marketing/linkedin` is the one route that talks to something else. LinkedIn is the only
+channel that *publishes by itself* — a post approved here goes out on a real feed under a
+real name — and that lives in the separate publishing backend, not in `../product-api`.
+
+Its origin comes from `NEXT_PUBLIC_LINKEDIN_API_URL`, and it is an origin with no path
+because that backend mounts its routers at the root. Leave it empty and the pane says it
+isn't wired up rather than drawing accounts and posts that don't exist.
+
+Two things that backend has to do for a cross-origin deploy, neither of which this repo can
+set: send its `access_token` cookie as `SameSite=None; Secure`, and list this app's origin
+in its CORS `allow_origins`. `src/lib/api/linkedin.ts` already sends `credentials: 'include'`
+for its half of that.
+
 > The legacy prototype still serves on **4321** (`node ../product/server.mjs`). This app uses **4322** so the two can run side by side during the migration.
 
 ## Routes
@@ -38,6 +53,7 @@ is no data without it. `npm run build && npm start` for production.
 | `/`           | The company brain — hub plus the five services. Tapping a service launches into it |
 | `/[service]`  | One floor per service (`/marketing`, `/hiring`, `/pr`, `/sales`, `/ops`) — same shell, different surface |
 | `/onboarding` | The six-question conversation that builds the company brain, then hands off into `/` |
+| `/marketing/linkedin` | A channel room whose right-hand pane is the real publishing backend — see below |
 
 `/[service]` is one dynamic route, not five pages: the layout, the graph, the work, the
 words and the script all come from `GET /surfaces/{id}`. A slug the API doesn't know renders

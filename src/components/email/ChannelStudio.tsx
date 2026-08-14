@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createCampaign, draftCampaign, paths } from '@/lib/api/resources';
 import { useResource } from '@/lib/api/useResource';
 import { GROUPS, branchTints } from '@/lib/brain';
@@ -34,9 +34,14 @@ import { HealthBox, KnowBox, KpiBoxes } from './ChannelBoxes';
    either: the copy, the hue, the questions, the thoughts, the campaigns
    and the writing all arrive from /directions/{id}. Swap the dummy
    backend for a real one and nothing in here moves.
+
+   `sidebar` is the one seam. A channel whose work lives in a different
+   backend — LinkedIn, which publishes by itself — hands in its own
+   right-hand pane and keeps the rest of the room. The default is the
+   campaign list every other channel wants.
    ============================================================ */
 
-function Studio({ channelId }: { channelId: string }) {
+function Studio({ channelId, sidebar, sidebarLabel }: ChannelStudioProps) {
   const pageRes = useResource<ChannelPage>(paths.direction(channelId));
   const listRes = useResource<Send[]>(paths.campaigns(channelId));
   const ideasRes = useResource<Idea[]>(paths.ideas(channelId));
@@ -255,18 +260,20 @@ function Studio({ channelId }: { channelId: string }) {
           />
         </section>
 
-        <aside className="pane-work es-pane" aria-label="Campaigns">
-          <CampaignPane
-            page={page}
-            campaigns={listRes.data ?? []}
-            work={work}
-            nouns={page?.nouns ?? null}
-            loading={listRes.loading}
-            error={!!listRes.error}
-            onCreate={() => write()}
-            onOpen={(s) => setOpenId(s.id)}
-            onRetry={retry}
-          />
+        <aside className="pane-work es-pane" aria-label={sidebarLabel ?? 'Campaigns'}>
+          {sidebar ?? (
+            <CampaignPane
+              page={page}
+              campaigns={listRes.data ?? []}
+              work={work}
+              nouns={page?.nouns ?? null}
+              loading={listRes.loading}
+              error={!!listRes.error}
+              onCreate={() => write()}
+              onOpen={(s) => setOpenId(s.id)}
+              onRetry={retry}
+            />
+          )}
         </aside>
       </main>
 
@@ -283,10 +290,17 @@ function Studio({ channelId }: { channelId: string }) {
   );
 }
 
-export default function ChannelStudio({ channelId }: { channelId: string }) {
+export interface ChannelStudioProps {
+  channelId: string;
+  /** replaces the campaign list when a channel's work lives elsewhere */
+  sidebar?: ReactNode;
+  sidebarLabel?: string;
+}
+
+export default function ChannelStudio({ channelId, sidebar, sidebarLabel }: ChannelStudioProps) {
   return (
     <PersonSheetProvider>
-      <Studio channelId={channelId} />
+      <Studio channelId={channelId} sidebar={sidebar} sidebarLabel={sidebarLabel} />
     </PersonSheetProvider>
   );
 }

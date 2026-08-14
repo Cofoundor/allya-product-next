@@ -1,0 +1,137 @@
+/* ============================================================
+   LinkedIn's own pane.
+
+   Everything shared with email and WhatsApp comes from studio.css. What
+   is here is what only this channel has: an account that expires, a post
+   whose words are worth showing before they go out, and a hold you can
+   still act inside.
+
+   The rows are deliberately not `.es-row`'s two-column grid — a post
+   here carries its commentary and a row of actions underneath, which is
+   a block, not a pair of cells.
+   ============================================================ */
+
+/* ---- an account, and how long it has left ---- */
+.li-account {
+  display: block;
+  padding: 11px;
+  margin-bottom: 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.li-account-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+.li-account .es-row-m {
+  display: block;
+  margin-bottom: 8px;
+}
+.li-account-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* connected, but something is stopping it — say so without shouting */
+.li-account.is-stalled {
+  border-color: var(--human-border);
+  background: var(--human-bg);
+}
+.li-expiry {
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+
+/* the pill carries the credential's standing, not the author's kind */
+.es-pill.li-connected {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.es-pill.li-expiring {
+  color: var(--human-ink);
+  border-color: var(--human-border);
+  background: var(--human-bg);
+}
+.es-pill.li-expired,
+.es-pill.li-revoked {
+  border-style: dashed;
+  color: var(--fg-faint);
+}
+
+/* ---- a post, with the words it will actually publish ---- */
+.li-post {
+  display: block;
+  padding: 11px;
+  margin-bottom: 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+.li-post .es-row-t {
+  display: block;
+  margin-bottom: 2px;
+}
+.li-post .es-row-m {
+  display: block;
+}
+.li-commentary {
+  margin: 8px 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--fg-soft);
+  /* enough to recognise it, not so much that the pane becomes the post */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.li-post-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* a post that is out is a fact; a post that failed is a thing to fix */
+.es-pill.s-held,
+.es-pill.s-publishing {
+  color: var(--human-ink);
+  border-color: var(--human-border);
+  background: var(--human-bg);
+}
+.es-pill.s-partial,
+.es-pill.s-failed {
+  border-style: dashed;
+}
+.es-pill.s-cancelled {
+  color: var(--fg-faint);
+  text-decoration: line-through;
+}
+
+/* ---- what just happened ---- */
+.li-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 12.5px;
+  color: var(--fg-soft);
+}
+
+/* ---- no backend address in this build ---- */
+.li-unwired code {
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+}
